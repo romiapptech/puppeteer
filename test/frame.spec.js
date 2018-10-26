@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Google Inc. All rights reserved.
+ * Copyright 2018 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
  */
 
 const utils = require('./utils');
+const {TimeoutError} = utils.requireRoot('Errors');
 
 module.exports.addTests = function({testRunner, expect}) {
   const {describe, xdescribe, fdescribe} = testRunner;
   const {it, fit, xit} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
 
-  describe('Frame.context', function() {
+  describe('Frame.executionContext', function() {
     it('should work', async({page, server}) => {
       await page.goto(server.EMPTY_PAGE);
       await utils.attachFrame(page, 'frame1', server.EMPTY_PAGE);
@@ -45,6 +46,84 @@ module.exports.addTests = function({testRunner, expect}) {
       ]);
       expect(a1).toBe(1);
       expect(a2).toBe(2);
+    });
+  });
+
+  describe('Frame.goto', function() {
+    it('should navigate subframes', async({page, server}) => {
+      await page.goto(server.PREFIX + '/frames/one-frame.html');
+      expect(page.frames()[0].url()).toContain('/frames/one-frame.html');
+      expect(page.frames()[1].url()).toContain('/frames/frame.html');
+
+      const response = await page.frames()[1].goto(server.EMPTY_PAGE);
+      expect(response.ok()).toBe(true);
+      expect(response.frame()).toBe(page.frames()[1]);
+    });
+    it('should reject when frame detaches', async({page, server}) => {
+      await page.goto(server.PREFIX + '/frames/one-frame.html');
+
+      server.setRoute('/empty.html', () => {});
+      const navigationPromise = page.frames()[1].goto(server.EMPTY_PAGE).catch(e => e);
+      await server.waitForRequest('/empty.html');
+
+      await page.$eval('iframe', frame => frame.remove());
+      const error = await navigationPromise;
+      expect(error.message).toBe('Navigating frame was detached');
+    });
+    it('should return matching responses', async({page, server}) => {
+      // Disable cache: otherwise, chromium will cache similar requests.
+      await page.setCacheEnabled(false);
+      await page.goto(server.EMPTY_PAGE);
+      // Attach three frames.
+      const frames = await Promise.all([
+        utils.attachFrame(page, 'frame1', server.EMPTY_PAGE),
+        utils.attachFrame(page, 'frame2', server.EMPTY_PAGE),
+        utils.attachFrame(page, 'frame3', server.EMPTY_PAGE),
+      ]);
+      // Navigate all frames to the same URL.
+      const serverResponses = [];
+      server.setRoute('/one-style.html', (req, res) => serverResponses.push(res));
+      const navigations = [];
+      for (let i = 0; i < 3; ++i) {
+        navigations.push(frames[i].goto(server.PREFIX + '/one-style.html'));
+        await server.waitForRequest('/one-style.html');
+      }
+      // Respond from server out-of-order.
+      const serverResponseTexts = ['AAA', 'BBB', 'CCC'];
+      for (const i of [1, 2, 0]) {
+        serverResponses[i].end(serverResponseTexts[i]);
+        const response = await navigations[i];
+        expect(response.frame()).toBe(frames[i]);
+        expect(await response.text()).toBe(serverResponseTexts[i]);
+      }
+    });
+  });
+
+  describe('Frame.waitForNavigation', function() {
+    it('should work', async({page, server}) => {
+      await page.goto(server.PREFIX + '/frames/one-frame.html');
+      const frame = page.frames()[1];
+      const [response] = await Promise.all([
+        frame.waitForNavigation(),
+        frame.evaluate(url => window.location.href = url, server.PREFIX + '/grid.html')
+      ]);
+      expect(response.ok()).toBe(true);
+      expect(response.url()).toContain('grid.html');
+      expect(response.frame()).toBe(frame);
+      expect(page.url()).toContain('/frames/one-frame.html');
+    });
+    it('should reject when frame detaches', async({page, server}) => {
+      await page.goto(server.PREFIX + '/frames/one-frame.html');
+      const frame = page.frames()[1];
+
+      server.setRoute('/empty.html', () => {});
+      const navigationPromise = frame.waitForNavigation();
+      await Promise.all([
+        server.waitForRequest('/empty.html'),
+        frame.evaluate(() => window.location = '/empty.html')
+      ]);
+      await page.$eval('iframe', frame => frame.remove());
+      await navigationPromise;
     });
   });
 
@@ -84,6 +163,14 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.evaluate(() => window.__FOO = 1);
       await watchdog;
     });
+    it('should work when resolved right before execution context disposal', async({page, server}) => {
+      await page.evaluateOnNewDocument(() => window.__RELOADED = true);
+      await page.waitForFunction(() => {
+        if (!window.__RELOADED)
+          window.location.reload();
+        return true;
+      });
+    });
     it('should poll on interval', async({page, server}) => {
       let success = false;
       const startTime = Date.now();
@@ -106,6 +193,13 @@ module.exports.addTests = function({testRunner, expect}) {
       await watchdog;
     });
     it('should poll on raf', async({page, server}) => {
+      const watchdog = page.waitForFunction(() => window.__FOO === 'hit', {polling: 'raf'});
+      await page.evaluate(() => window.__FOO = 'hit');
+      await watchdog;
+    });
+    it('should work with strict CSP policy', async({page, server}) => {
+      server.setCSP('/empty.html', 'script-src ' + server.PREFIX);
+      await page.goto(server.EMPTY_PAGE);
       const watchdog = page.waitForFunction(() => window.__FOO === 'hit', {polling: 'raf'});
       await page.evaluate(() => window.__FOO = 'hit');
       await watchdog;
@@ -144,6 +238,22 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(resolved).toBe(false);
       await page.evaluate(element => element.remove(), div);
       await waitForFunction;
+    });
+    it('should respect timeout', async({page}) => {
+      let error = null;
+      await page.waitForFunction('false', {timeout: 10}).catch(e => error = e);
+      expect(error).toBeTruthy();
+      expect(error.message).toContain('waiting for function failed: timeout');
+      expect(error).toBeInstanceOf(TimeoutError);
+    });
+    it('should disable timeout when its set to 0', async({page}) => {
+      const watchdog = page.waitForFunction(() => {
+        window.__counter = (window.__counter || 0) + 1;
+        return window.__injected;
+      }, {timeout: 0, polling: 10});
+      await page.waitForFunction(() => window.__counter > 10);
+      await page.evaluate(() => window.__injected = true);
+      await watchdog;
     });
   });
 
@@ -286,7 +396,15 @@ module.exports.addTests = function({testRunner, expect}) {
       let error = null;
       await page.waitForSelector('div', {timeout: 10}).catch(e => error = e);
       expect(error).toBeTruthy();
-      expect(error.message).toContain('waiting failed: timeout');
+      expect(error.message).toContain('waiting for selector "div" failed: timeout');
+      expect(error).toBeInstanceOf(TimeoutError);
+    });
+    it('should have an error message specifically for awaiting an element to be hidden', async({page, server}) => {
+      await page.setContent(`<div></div>`);
+      let error = null;
+      await page.waitForSelector('div', {hidden: true, timeout: 10}).catch(e => error = e);
+      expect(error).toBeTruthy();
+      expect(error.message).toContain('waiting for selector "div" to be hidden failed: timeout');
     });
 
     it('should respond to node attribute mutation', async({page, server}) => {
@@ -302,6 +420,11 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.setContent(`<div class='zombo'>anything</div>`);
       expect(await page.evaluate(x => x.textContent, await waitForSelector)).toBe('anything');
     });
+    it('should have correct stack trace for timeout', async({page, server}) => {
+      let error;
+      await page.waitForSelector('.zombo', {timeout: 10}).catch(e => error = e);
+      expect(error.stack).toContain('frame.spec.js');
+    });
   });
 
   describe('Frame.waitForXPath', function() {
@@ -311,6 +434,13 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.setContent(`<p>red herring</p><p>hello  world  </p>`);
       const waitForXPath = page.waitForXPath('//p[normalize-space(.)="hello world"]');
       expect(await page.evaluate(x => x.textContent, await waitForXPath)).toBe('hello  world  ');
+    });
+    it('should respect timeout', async({page}) => {
+      let error = null;
+      await page.waitForXPath('//div', {timeout: 10}).catch(e => error = e);
+      expect(error).toBeTruthy();
+      expect(error.message).toContain('waiting for XPath "//div" failed: timeout');
+      expect(error).toBeInstanceOf(TimeoutError);
     });
     it('should run in specified frame', async({page, server}) => {
       await utils.attachFrame(page, 'frame1', server.EMPTY_PAGE);
@@ -366,6 +496,97 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.setContent(`<div>some text</div>`);
       const waitForXPath = page.waitForXPath('/html/body/div');
       expect(await page.evaluate(x => x.textContent, await waitForXPath)).toBe('some text');
+    });
+  });
+
+  describe('Frame Management', function() {
+    it('should handle nested frames', async({page, server}) => {
+      await page.goto(server.PREFIX + '/frames/nested-frames.html');
+      expect(utils.dumpFrames(page.mainFrame())).toBeGolden('nested-frames.txt');
+    });
+    it('should send events when frames are manipulated dynamically', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      // validate frameattached events
+      const attachedFrames = [];
+      page.on('frameattached', frame => attachedFrames.push(frame));
+      await utils.attachFrame(page, 'frame1', './assets/frame.html');
+      expect(attachedFrames.length).toBe(1);
+      expect(attachedFrames[0].url()).toContain('/assets/frame.html');
+
+      // validate framenavigated events
+      const navigatedFrames = [];
+      page.on('framenavigated', frame => navigatedFrames.push(frame));
+      await utils.navigateFrame(page, 'frame1', './empty.html');
+      expect(navigatedFrames.length).toBe(1);
+      expect(navigatedFrames[0].url()).toBe(server.EMPTY_PAGE);
+
+      // validate framedetached events
+      const detachedFrames = [];
+      page.on('framedetached', frame => detachedFrames.push(frame));
+      await utils.detachFrame(page, 'frame1');
+      expect(detachedFrames.length).toBe(1);
+      expect(detachedFrames[0].isDetached()).toBe(true);
+    });
+    it('should send "framenavigated" when navigating on anchor URLs', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      await Promise.all([
+        page.goto(server.EMPTY_PAGE + '#foo'),
+        utils.waitEvent(page, 'framenavigated')
+      ]);
+      expect(page.url()).toBe(server.EMPTY_PAGE + '#foo');
+    });
+    it('should persist mainFrame on cross-process navigation', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      const mainFrame = page.mainFrame();
+      await page.goto(server.CROSS_PROCESS_PREFIX + '/empty.html');
+      expect(page.mainFrame() === mainFrame).toBeTruthy();
+    });
+    it('should not send attach/detach events for main frame', async({page, server}) => {
+      let hasEvents = false;
+      page.on('frameattached', frame => hasEvents = true);
+      page.on('framedetached', frame => hasEvents = true);
+      await page.goto(server.EMPTY_PAGE);
+      expect(hasEvents).toBe(false);
+    });
+    it('should detach child frames on navigation', async({page, server}) => {
+      let attachedFrames = [];
+      let detachedFrames = [];
+      let navigatedFrames = [];
+      page.on('frameattached', frame => attachedFrames.push(frame));
+      page.on('framedetached', frame => detachedFrames.push(frame));
+      page.on('framenavigated', frame => navigatedFrames.push(frame));
+      await page.goto(server.PREFIX + '/frames/nested-frames.html');
+      expect(attachedFrames.length).toBe(4);
+      expect(detachedFrames.length).toBe(0);
+      expect(navigatedFrames.length).toBe(5);
+
+      attachedFrames = [];
+      detachedFrames = [];
+      navigatedFrames = [];
+      await page.goto(server.EMPTY_PAGE);
+      expect(attachedFrames.length).toBe(0);
+      expect(detachedFrames.length).toBe(4);
+      expect(navigatedFrames.length).toBe(1);
+    });
+    it('should report frame.name()', async({page, server}) => {
+      await utils.attachFrame(page, 'theFrameId', server.EMPTY_PAGE);
+      await page.evaluate(url => {
+        const frame = document.createElement('iframe');
+        frame.name = 'theFrameName';
+        frame.src = url;
+        document.body.appendChild(frame);
+        return new Promise(x => frame.onload = x);
+      }, server.EMPTY_PAGE);
+      expect(page.frames()[0].name()).toBe('');
+      expect(page.frames()[1].name()).toBe('theFrameId');
+      expect(page.frames()[2].name()).toBe('theFrameName');
+    });
+    it('should report frame.parent()', async({page, server}) => {
+      await utils.attachFrame(page, 'frame1', server.EMPTY_PAGE);
+      await utils.attachFrame(page, 'frame2', server.EMPTY_PAGE);
+      expect(page.frames()[0].parentFrame()).toBe(null);
+      expect(page.frames()[1].parentFrame()).toBe(page.mainFrame());
+      expect(page.frames()[2].parentFrame()).toBe(page.mainFrame());
     });
   });
 };

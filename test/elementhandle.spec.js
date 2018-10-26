@@ -50,6 +50,83 @@ module.exports.addTests = function({testRunner, expect}) {
       const box = await elementHandle.boundingBox();
       expect(box).toEqual({ x: 8, y: 8, width: 100, height: 200 });
     });
+    it('should work with SVG nodes', async({page, server}) => {
+      await page.setContent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="500" height="500">
+          <rect id="theRect" x="30" y="50" width="200" height="300"></rect>
+        </svg>
+      `);
+      const element = await page.$('#therect');
+      const pptrBoundingBox = await element.boundingBox();
+      const webBoundingBox = await page.evaluate(e => {
+        const rect = e.getBoundingClientRect();
+        return {x: rect.x, y: rect.y, width: rect.width, height: rect.height};
+      }, element);
+      expect(pptrBoundingBox).toEqual(webBoundingBox);
+    });
+  });
+
+  describe('ElementHandle.boxModel', function() {
+    it('should work', async({page, server}) => {
+      await page.goto(server.PREFIX + '/resetcss.html');
+
+      // Step 1: Add Frame and position it absolutely.
+      await utils.attachFrame(page, 'frame1', server.PREFIX + '/resetcss.html');
+      await page.evaluate(() => {
+        const frame = document.querySelector('#frame1');
+        frame.style = `
+          position: absolute;
+          left: 1px;
+          top: 2px;
+        `;
+      });
+
+      // Step 2: Add div and position it absolutely inside frame.
+      const frame = page.frames()[1];
+      const divHandle = (await frame.evaluateHandle(() => {
+        const div = document.createElement('div');
+        document.body.appendChild(div);
+        div.style = `
+          box-sizing: border-box;
+          position: absolute;
+          border-left: 1px solid black;
+          padding-left: 2px;
+          margin-left: 3px;
+          left: 4px;
+          top: 5px;
+          width: 6px;
+          height: 7px;
+        `;
+        return div;
+      })).asElement();
+
+      // Step 3: query div's boxModel and assert box values.
+      const box = await divHandle.boxModel();
+      expect(box.width).toBe(6);
+      expect(box.height).toBe(7);
+      expect(box.margin[0]).toEqual({
+        x: 1 + 4, // frame.left + div.left
+        y: 2 + 5,
+      });
+      expect(box.border[0]).toEqual({
+        x: 1 + 4 + 3, // frame.left + div.left + div.margin-left
+        y: 2 + 5,
+      });
+      expect(box.padding[0]).toEqual({
+        x: 1 + 4 + 3 + 1, // frame.left + div.left + div.marginLeft + div.borderLeft
+        y: 2 + 5,
+      });
+      expect(box.content[0]).toEqual({
+        x: 1 + 4 + 3 + 1 + 2, // frame.left + div.left + div.marginLeft + div.borderLeft + dif.paddingLeft
+        y: 2 + 5,
+      });
+    });
+
+    it('should return null for invisible elements', async({page, server}) => {
+      await page.setContent('<div style="display:none">hi</div>');
+      const element = await page.$('div');
+      expect(await element.boxModel()).toBe(null);
+    });
   });
 
   describe('ElementHandle.contentFrame', function() {
@@ -121,6 +198,18 @@ module.exports.addTests = function({testRunner, expect}) {
     });
   });
 
+  describe('ElementHandle.isIntersectingViewport', function() {
+    it('should work', async({page, server}) => {
+      await page.goto(server.PREFIX + '/offscreenbuttons.html');
+      for (let i = 0; i < 11; ++i) {
+        const button = await page.$('#btn' + i);
+        // All but last button are visible.
+        const visible = i < 10;
+        expect(await button.isIntersectingViewport()).toBe(visible);
+      }
+    });
+  });
+
   describe('ElementHandle.screenshot', function() {
     it('should work', async({page, server}) => {
       await page.setViewport({width: 500, height: 500});
@@ -158,6 +247,9 @@ module.exports.addTests = function({testRunner, expect}) {
           width: 600px;
           height: 600px;
           margin-left: 50px;
+        }
+        ::-webkit-scrollbar{
+          display: none;
         }
         </style>
         <div class="to-screenshot"></div>
@@ -211,6 +303,11 @@ module.exports.addTests = function({testRunner, expect}) {
       const screenshotError = await elementHandle.screenshot().catch(error => error);
       expect(screenshotError.message).toBe('Node is either not visible or not an HTMLElement');
     });
+    xit('should not hang with zero width/height element', async({page, server}) => {
+      await page.setContent('<div style="width: 0; height: 0"></div>');
+      const div = await page.$('div');
+      await div.screenshot();
+    });
   });
 
   describe('ElementHandle.$', function() {
@@ -230,6 +327,55 @@ module.exports.addTests = function({testRunner, expect}) {
       const second = await html.$('.third');
       expect(second).toBe(null);
     });
+  });
+  describe('ElementHandle.$eval', function() {
+    it('should work', async({page, server}) => {
+      await page.setContent('<html><body><div class="tweet"><div class="like">100</div><div class="retweets">10</div></div></body></html>');
+      const tweet = await page.$('.tweet');
+      const content = await tweet.$eval('.like', node => node.innerText);
+      expect(content).toBe('100');
+    });
+
+    it('should retrieve content from subtree', async({page, server}) => {
+      const htmlContent = '<div class="a">not-a-child-div</div><div id="myId"><div class="a">a-child-div</div></div>';
+      await page.setContent(htmlContent);
+      const elementHandle = await page.$('#myId');
+      const content = await elementHandle.$eval('.a', node => node.innerText);
+      expect(content).toBe('a-child-div');
+    });
+
+    it('should throw in case of missing selector', async({page, server}) => {
+      const htmlContent = '<div class="a">not-a-child-div</div><div id="myId"></div>';
+      await page.setContent(htmlContent);
+      const elementHandle = await page.$('#myId');
+      const errorMessage = await elementHandle.$eval('.a', node => node.innerText).catch(error => error.message);
+      expect(errorMessage).toBe(`Error: failed to find element matching selector ".a"`);
+    });
+  });
+  describe('ElementHandle.$$eval', function() {
+    it('should work', async({page, server}) => {
+      await page.setContent('<html><body><div class="tweet"><div class="like">100</div><div class="like">10</div></div></body></html>');
+      const tweet = await page.$('.tweet');
+      const content = await tweet.$$eval('.like', nodes => nodes.map(n => n.innerText));
+      expect(content).toEqual(['100', '10']);
+    });
+
+    it('should retrieve content from subtree', async({page, server}) => {
+      const htmlContent = '<div class="a">not-a-child-div</div><div id="myId"><div class="a">a1-child-div</div><div class="a">a2-child-div</div></div>';
+      await page.setContent(htmlContent);
+      const elementHandle = await page.$('#myId');
+      const content = await elementHandle.$$eval('.a', nodes => nodes.map(n => n.innerText));
+      expect(content).toEqual(['a1-child-div', 'a2-child-div']);
+    });
+
+    it('should not throw in case of missing selector', async({page, server}) => {
+      const htmlContent = '<div class="a">not-a-child-div</div><div id="myId"></div>';
+      await page.setContent(htmlContent);
+      const elementHandle = await page.$('#myId');
+      const nodesLength = await elementHandle.$$eval('.a', nodes => nodes.length);
+      expect(nodesLength).toBe(0);
+    });
+
   });
 
   describe('ElementHandle.$$', function() {
