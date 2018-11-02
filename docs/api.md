@@ -1,16 +1,14 @@
-# Puppeteer API <!-- GEN:version -->Tip-Of-Tree<!-- GEN:stop-->
+# Puppeteer API <!-- GEN:version -->v1.10.0<!-- GEN:stop-->
 
-<!-- GEN:empty-if-release -->
-> Next Release: **Nov 1, 2018**
-<!-- GEN:stop -->
+<!-- GEN:empty-if-release --><!-- GEN:stop -->
 - API Translations: [中文|Chinese](https://zhaoqize.github.io/puppeteer-api-zh_CN/#/)
 - Releases per Chromium Version:
-  * Chromium 71.0.3542.0 - [Puppeteer v1.8.0](https://github.com/GoogleChrome/puppeteer/blob/v1.8.0/docs/api.md)
+  * Chromium 72.0.3582.0 - [Puppeteer v1.10.0](https://github.com/GoogleChrome/puppeteer/blob/v1.10.0/docs/api.md)
+  * Chromium 71.0.3563.0 - [Puppeteer v1.9.0](https://github.com/GoogleChrome/puppeteer/blob/v1.9.0/docs/api.md)
   * Chromium 70.0.3508.0 - [Puppeteer v1.7.0](https://github.com/GoogleChrome/puppeteer/blob/v1.7.0/docs/api.md)
   * Chromium 69.0.3494.0 - [Puppeteer v1.6.2](https://github.com/GoogleChrome/puppeteer/blob/v1.6.2/docs/api.md)
   * Chromium 68.0.3419.0 - [Puppeteer v1.4.0](https://github.com/GoogleChrome/puppeteer/blob/v1.4.0/docs/api.md)
   * Chromium 67.0.3392.0 - [Puppeteer v1.3.0](https://github.com/GoogleChrome/puppeteer/blob/v1.3.0/docs/api.md)
-  * Chromium 66.0.3347.0 - [Puppeteer v1.1.1](https://github.com/GoogleChrome/puppeteer/blob/v1.1.1/docs/api.md)
   * [All releases](https://github.com/GoogleChrome/puppeteer/releases)
 
 
@@ -90,6 +88,7 @@
   * [page.$$eval(selector, pageFunction[, ...args])](#pageevalselector-pagefunction-args)
   * [page.$eval(selector, pageFunction[, ...args])](#pageevalselector-pagefunction-args-1)
   * [page.$x(expression)](#pagexexpression)
+  * [page.accessibility](#pageaccessibility)
   * [page.addScriptTag(options)](#pageaddscripttagoptions)
   * [page.addStyleTag(options)](#pageaddstyletagoptions)
   * [page.authenticate(credentials)](#pageauthenticatecredentials)
@@ -156,6 +155,8 @@
   * [worker.evaluateHandle(pageFunction, ...args)](#workerevaluatehandlepagefunction-args)
   * [worker.executionContext()](#workerexecutioncontext)
   * [worker.url()](#workerurl)
+- [class: Accessibility](#class-accessibility)
+  * [accessibility.snapshot([options])](#accessibilitysnapshotoptions)
 - [class: Keyboard](#class-keyboard)
   * [keyboard.down(key[, options])](#keyboarddownkey-options)
   * [keyboard.press(key[, options])](#keyboardpresskey-options)
@@ -404,7 +405,7 @@ const puppeteer = require('puppeteer');
 
 (async () => {
   const pathToExtension = require('path').join(__dirname, 'my-extension');
-  const browser = puppeteer.launch({
+  const browser = await puppeteer.launch({
     headless: false,
     args: [
       `--disable-extensions-except=${pathToExtension}`,
@@ -1046,6 +1047,9 @@ Shortcut for [page.mainFrame().$eval(selector, pageFunction)](#frameevalselector
 The method evaluates the XPath expression.
 
 Shortcut for [page.mainFrame().$x(expression)](#framexexpression)
+
+#### page.accessibility
+- returns: <[Accessibility]>
 
 #### page.addScriptTag(options)
 - `options` <[Object]>
@@ -1981,6 +1985,79 @@ Shortcut for [(await worker.executionContext()).evaluateHandle(pageFunction, ...
 
 #### worker.url()
 - returns: <[string]>
+
+### class: Accessibility
+
+The Accessibility class provides methods for inspecting Chromium's accessibility tree. The accessibility tree is used by assistive technology such as [screen readers](https://en.wikipedia.org/wiki/Screen_reader).
+
+Accessibility is a very platform-specific thing. On different platforms, there are different screen readers that might have wildly different output.
+
+Blink - Chrome's rendering engine - has a concept of "accessibility tree", which is than translated into different platform-specific APIs. Accessibility namespace gives users
+access to the Blink Accessibility Tree.
+
+Most of the accessibility tree gets filtered out when converting from Blink AX Tree to Platform-specific AX-Tree or by screen readers themselves. By default, Puppeteer tries to approximate this filtering, exposing only the "interesting" nodes of the tree.
+
+
+
+#### accessibility.snapshot([options])
+- `options` <[Object]>
+  - `interestingOnly` <[boolean]> Prune uninteresting nodes from the tree. Defaults to `true`.
+- returns: <[Promise]<[AXNode]>> Returns an AXNode object with the following properties:
+  - `role` <[string]> The [role](https://www.w3.org/TR/wai-aria/#usage_intro).
+  - `name` <[string]> A human readable name for the node.
+  - `value` <[string]|[number]> The current value of the node.
+  - `description` <[string]> An additional human readable description of the node.
+  - `keyshortcuts` <[string]> Keyboard shortcuts associated with this node.
+  - `roledescription` <[string]> A human readable alternative to the role.
+  - `valuetext` <[string]> A description of the current value.
+  - `disabled` <[boolean]> Whether the node is disabled.
+  - `expanded` <[boolean]> Whether the node is expanded or collapsed.
+  - `focused` <[boolean]> Whether the node is focused.
+  - `modal` <[boolean]> Whether the node is [modal](https://en.wikipedia.org/wiki/Modal_window).
+  - `multiline` <[boolean]> Whether the node text input supports multiline.
+  - `multiselectable` <[boolean]> Whether more than one child can be selected.
+  - `readonly` <[boolean]> Whether the node is read only.
+  - `required` <[boolean]> Whether the node is required.
+  - `selected` <[boolean]> Whether the node is selected in its parent node.
+  - `checked` <[boolean]|[string]> Whether the checkbox is checked, or "mixed".
+  - `pressed` <[boolean]|[string]> Whether the toggle button is checked, or "mixed".
+  - `level` <[number]> The level of a heading.
+  - `valuemin` <[number]> The minimum value in a node.
+  - `valuemax` <[number]> The maximum value in a node.
+  - `autocomplete` <[string]> What kind of autocomplete is supported by a control.
+  - `haspopup` <[string]> What kind of popup is currently being shown for a node.
+  - `invalid` <[string]> Whether and in what way this node's value is invalid.
+  - `orientation` <[string]> Whether the node is oriented horizontally or vertically.
+  - `children` <[Array]<[AXNode]>> Child nodes of this node, if any.
+
+Captures the current state of the accessibility tree. The returned object represents the root accessible node of the page.
+
+> **NOTE** The Chromium accessibility tree contains nodes that go unused on most platforms and by
+most screen readers. Puppeteer will discard them as well for an easier to process tree,
+unless `interestingOnly` is set to `false`.
+
+An example of dumping the entire accessibility tree:
+```js
+const snapshot = await page.accessibility.snapshot();
+console.log(snapshot);
+```
+
+An example of logging the focused node's name:
+```js
+const snapshot = await page.accessibility.snapshot();
+const node = findFocusedNode(snapshot);
+console.log(node && node.name);
+
+function findFocusedNode(node) {
+  if (node.focused)
+    return node;
+  for (const child of node.children || []) {
+    const foundNode = findFocusedNode(child);
+    return foundNode;
+  }
+  return null;
+}
+```
 
 ### class: Keyboard
 
@@ -3063,6 +3140,18 @@ Exception is immediately thrown if the request interception is not enabled.
 Continues request with optional request overrides. To use this, request interception should be enabled with `page.setRequestInterception`.
 Exception is immediately thrown if the request interception is not enabled.
 
+```js
+await page.setRequestInterception(true);
+page.on('request', request => {
+  // Override headers
+  const headers = Object.assign({}, request.headers(), {
+    foo: 'bar', // set "foo" header
+    origin: undefined, // remove "origin" header
+  });
+  request.continue({headers});
+});
+```
+
 #### request.failure()
 - returns: <?[Object]> Object describing request failure, if any
   - `errorText` <[string]> Human-readable error message, e.g. `'net::ERR_FAILED'`.
@@ -3431,3 +3520,5 @@ TimeoutError is emitted whenever certain operations are terminated due to timeou
 [UnixTime]: https://en.wikipedia.org/wiki/Unix_time "Unix Time"
 [SecurityDetails]: #class-securitydetails "SecurityDetails"
 [Worker]: #class-worker "Worker"
+[Accessibility]: #class-accessibility "Accessibility"
+[AXNode]: #accessibilitysnapshotoptions "AXNode"
