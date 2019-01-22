@@ -116,7 +116,7 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
       it('userDataDir argument', async({server}) => {
         const userDataDir = await mkdtempAsync(TMP_FOLDER);
         const options = Object.assign({}, defaultBrowserOptions);
-        options.args = [`--user-data-dir=${userDataDir}`].concat(options.args);
+        options.args = [`--user-data-dir=${userDataDir}`].concat(options.args || []);
         const browser = await puppeteer.launch(options);
         expect(fs.readdirSync(userDataDir).length).toBeGreaterThan(0);
         await browser.close();
@@ -209,7 +209,7 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
       });
       it('should support the pipe argument', async() => {
         const options = Object.assign({}, defaultBrowserOptions);
-        options.args = ['--remote-debugging-pipe'].concat(options.args);
+        options.args = ['--remote-debugging-pipe'].concat(options.args || []);
         const browser = await puppeteer.launch(options);
         expect(browser.wsEndpoint()).toBe('');
         const page = await browser.newPage();
@@ -256,7 +256,7 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
       it('should have custom url when launching browser', async function({server}) {
         const customUrl = server.PREFIX + '/empty.html';
         const options = Object.assign({}, defaultBrowserOptions);
-        options.args = [customUrl].concat(options.args);
+        options.args = [customUrl].concat(options.args || []);
         const browser = await puppeteer.launch(options);
         const pages = await browser.pages();
         expect(pages.length).toBe(1);
@@ -343,6 +343,47 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
         expect(utils.dumpFrames(restoredPage.mainFrame())).toBeGolden('reconnect-nested-frames.txt');
         expect(await restoredPage.evaluate(() => 7 * 8)).toBe(56);
         await browser.close();
+      });
+      it('should be able to connect using browserUrl, with and without trailing slash', async({server}) => {
+        const originalBrowser = await puppeteer.launch(Object.assign({}, defaultBrowserOptions, {
+          args: ['--remote-debugging-port=21222']
+        }));
+        const browserURL = 'http://127.0.0.1:21222';
+
+        const browser1 = await puppeteer.connect({browserURL});
+        const page1 = await browser1.newPage();
+        expect(await page1.evaluate(() => 7 * 8)).toBe(56);
+        browser1.disconnect();
+
+        const browser2 = await puppeteer.connect({browserURL: browserURL + '/'});
+        const page2 = await browser2.newPage();
+        expect(await page2.evaluate(() => 8 * 7)).toBe(56);
+        browser2.disconnect();
+        originalBrowser.close();
+      });
+      it('should throw when using both browserWSEndpoint and browserURL', async({server}) => {
+        const originalBrowser = await puppeteer.launch(Object.assign({}, defaultBrowserOptions, {
+          args: ['--remote-debugging-port=21222']
+        }));
+        const browserURL = 'http://127.0.0.1:21222';
+
+        let error = null;
+        await puppeteer.connect({browserURL, browserWSEndpoint: originalBrowser.wsEndpoint()}).catch(e => error = e);
+        expect(error.message).toContain('Exactly one of browserWSEndpoint, browserURL or transport');
+
+        originalBrowser.close();
+      });
+      it('should throw when trying to connect to non-existing browser', async({server}) => {
+        const originalBrowser = await puppeteer.launch(Object.assign({}, defaultBrowserOptions, {
+          args: ['--remote-debugging-port=21222']
+        }));
+        const browserURL = 'http://127.0.0.1:32333';
+
+        let error = null;
+        await puppeteer.connect({browserURL}).catch(e => error = e);
+        expect(error.message).toContain('Failed to fetch browser webSocket url from');
+
+        originalBrowser.close();
       });
     });
     describe('Puppeteer.executablePath', function() {

@@ -47,7 +47,6 @@ const defaultBrowserOptions = {
   slowMo,
   headless,
   dumpio: (process.env.DUMPIO || 'false').trim().toLowerCase() === 'true',
-  args: ['--no-sandbox']
 };
 
 let parallel = 1;
@@ -151,13 +150,23 @@ describe('Browser', function() {
     require('./cookies.spec.js').addTests({testRunner, expect});
     require('./coverage.spec.js').addTests({testRunner, expect});
     require('./elementhandle.spec.js').addTests({testRunner, expect});
+    require('./queryselector.spec.js').addTests({testRunner, expect});
+    require('./waittask.spec.js').addTests({testRunner, expect});
     require('./frame.spec.js').addTests({testRunner, expect});
     require('./input.spec.js').addTests({testRunner, expect});
+    require('./mouse.spec.js').addTests({testRunner, expect});
+    require('./keyboard.spec.js').addTests({testRunner, expect});
+    require('./touchscreen.spec.js').addTests({testRunner, expect});
+    require('./click.spec.js').addTests({testRunner, expect});
     require('./jshandle.spec.js').addTests({testRunner, expect});
     require('./network.spec.js').addTests({testRunner, expect});
     require('./page.spec.js').addTests({testRunner, expect, headless});
+    require('./dialog.spec.js').addTests({testRunner, expect, headless});
+    require('./navigation.spec.js').addTests({testRunner, expect, headless});
+    require('./evaluation.spec.js').addTests({testRunner, expect, headless});
+    require('./emulation.spec.js').addTests({testRunner, expect, headless});
+    require('./screenshot.spec.js').addTests({testRunner, expect});
     require('./target.spec.js').addTests({testRunner, expect});
-    require('./tracing.spec.js').addTests({testRunner, expect});
     require('./worker.spec.js').addTests({testRunner, expect});
   });
 
@@ -169,6 +178,7 @@ describe('Browser', function() {
 require('./ignorehttpserrors.spec.js').addTests({testRunner, expect, defaultBrowserOptions});
 require('./puppeteer.spec.js').addTests({testRunner, expect, defaultBrowserOptions});
 require('./headful.spec.js').addTests({testRunner, expect, defaultBrowserOptions});
+require('./tracing.spec.js').addTests({testRunner, expect, defaultBrowserOptions});
 
 if (process.env.COVERAGE) {
   describe('COVERAGE', function() {

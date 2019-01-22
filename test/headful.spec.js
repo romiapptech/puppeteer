@@ -17,8 +17,8 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const rm = require('rimraf').sync;
 const {helper} = require('../lib/helper');
+const rmAsync = helper.promisify(require('rimraf'));
 const utils = require('./utils');
 const {waitEvent} = utils;
 const puppeteer = utils.requireRoot('index.js');
@@ -55,7 +55,6 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
   const extensionOptions = Object.assign({}, defaultBrowserOptions, {
     headless: false,
     args: [
-      '--no-sandbox',
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
     ],
@@ -97,7 +96,8 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
       await headlessPage.goto(server.EMPTY_PAGE);
       const cookie = await headlessPage.evaluate(() => document.cookie);
       await headlessBrowser.close();
-      rm(userDataDir);
+      // This might throw. See https://github.com/GoogleChrome/puppeteer/issues/2778
+      await rmAsync(userDataDir).catch(e => {});
       expect(cookie).toBe('foo=true');
     });
     it('OOPIF: should report google.com frame', async({server}) => {
@@ -119,6 +119,15 @@ module.exports.addTests = function({testRunner, expect, defaultBrowserOptions}) 
         server.EMPTY_PAGE,
         'https://google.com/'
       ]);
+      await browser.close();
+    });
+    it('should close browser with beforeunload page', async({server}) => {
+      const browser = await puppeteer.launch(headfulOptions);
+      const page = await browser.newPage();
+      await page.goto(server.PREFIX + '/beforeunload.html');
+      // We have to interact with a page so that 'beforeunload' handlers
+      // fire.
+      await page.click('body');
       await browser.close();
     });
   });

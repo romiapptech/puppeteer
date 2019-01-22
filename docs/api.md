@@ -1,6 +1,8 @@
-# Puppeteer API <!-- GEN:version -->v1.10.0<!-- GEN:stop-->
+# Puppeteer API <!-- GEN:version -->Tip-Of-Tree<!-- GEN:stop-->
 
-<!-- GEN:empty-if-release --><!-- GEN:stop -->
+<!-- GEN:empty-if-release -->
+> Next Release: **Jan 31, 2019**
+<!-- GEN:stop -->
 - API Translations: [中文|Chinese](https://zhaoqize.github.io/puppeteer-api-zh_CN/#/)
 - Releases per Chromium Version:
   * Chromium 72.0.3582.0 - [Puppeteer v1.10.0](https://github.com/GoogleChrome/puppeteer/blob/v1.10.0/docs/api.md)
@@ -77,6 +79,7 @@
   * [event: 'load'](#event-load)
   * [event: 'metrics'](#event-metrics)
   * [event: 'pageerror'](#event-pageerror)
+  * [event: 'popup'](#event-popup)
   * [event: 'request'](#event-request)
   * [event: 'requestfailed'](#event-requestfailed)
   * [event: 'requestfinished'](#event-requestfinished)
@@ -94,37 +97,38 @@
   * [page.authenticate(credentials)](#pageauthenticatecredentials)
   * [page.bringToFront()](#pagebringtofront)
   * [page.browser()](#pagebrowser)
+  * [page.browserContext()](#pagebrowsercontext)
   * [page.click(selector[, options])](#pageclickselector-options)
-  * [page.close(options)](#pagecloseoptions)
+  * [page.close([options])](#pagecloseoptions)
   * [page.content()](#pagecontent)
-  * [page.cookies(...urls)](#pagecookiesurls)
+  * [page.cookies([...urls])](#pagecookiesurls)
   * [page.coverage](#pagecoverage)
   * [page.deleteCookie(...cookies)](#pagedeletecookiecookies)
   * [page.emulate(options)](#pageemulateoptions)
   * [page.emulateMedia(mediaType)](#pageemulatemediamediatype)
-  * [page.evaluate(pageFunction, ...args)](#pageevaluatepagefunction-args)
-  * [page.evaluateHandle(pageFunction, ...args)](#pageevaluatehandlepagefunction-args)
-  * [page.evaluateOnNewDocument(pageFunction, ...args)](#pageevaluateonnewdocumentpagefunction-args)
+  * [page.evaluate(pageFunction[, ...args])](#pageevaluatepagefunction-args)
+  * [page.evaluateHandle(pageFunction[, ...args])](#pageevaluatehandlepagefunction-args)
+  * [page.evaluateOnNewDocument(pageFunction[, ...args])](#pageevaluateonnewdocumentpagefunction-args)
   * [page.exposeFunction(name, puppeteerFunction)](#pageexposefunctionname-puppeteerfunction)
   * [page.focus(selector)](#pagefocusselector)
   * [page.frames()](#pageframes)
-  * [page.goBack(options)](#pagegobackoptions)
-  * [page.goForward(options)](#pagegoforwardoptions)
-  * [page.goto(url, options)](#pagegotourl-options)
+  * [page.goBack([options])](#pagegobackoptions)
+  * [page.goForward([options])](#pagegoforwardoptions)
+  * [page.goto(url[, options])](#pagegotourl-options)
   * [page.hover(selector)](#pagehoverselector)
   * [page.isClosed()](#pageisclosed)
   * [page.keyboard](#pagekeyboard)
   * [page.mainFrame()](#pagemainframe)
   * [page.metrics()](#pagemetrics)
   * [page.mouse](#pagemouse)
-  * [page.pdf(options)](#pagepdfoptions)
+  * [page.pdf([options])](#pagepdfoptions)
   * [page.queryObjects(prototypeHandle)](#pagequeryobjectsprototypehandle)
-  * [page.reload(options)](#pagereloadoptions)
+  * [page.reload([options])](#pagereloadoptions)
   * [page.screenshot([options])](#pagescreenshotoptions)
   * [page.select(selector, ...values)](#pageselectselector-values)
   * [page.setBypassCSP(enabled)](#pagesetbypasscspenabled)
-  * [page.setCacheEnabled(enabled)](#pagesetcacheenabledenabled)
-  * [page.setContent(html)](#pagesetcontenthtml)
+  * [page.setCacheEnabled([enabled])](#pagesetcacheenabledenabled)
+  * [page.setContent(html[, options])](#pagesetcontenthtml-options)
   * [page.setCookie(...cookies)](#pagesetcookiecookies)
   * [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout)
   * [page.setExtraHTTPHeaders(headers)](#pagesetextrahttpheadersheaders)
@@ -144,15 +148,15 @@
   * [page.viewport()](#pageviewport)
   * [page.waitFor(selectorOrFunctionOrTimeout[, options[, ...args]])](#pagewaitforselectororfunctionortimeout-options-args)
   * [page.waitForFunction(pageFunction[, options[, ...args]])](#pagewaitforfunctionpagefunction-options-args)
-  * [page.waitForNavigation(options)](#pagewaitfornavigationoptions)
-  * [page.waitForRequest(urlOrPredicate, options)](#pagewaitforrequesturlorpredicate-options)
-  * [page.waitForResponse(urlOrPredicate, options)](#pagewaitforresponseurlorpredicate-options)
+  * [page.waitForNavigation([options])](#pagewaitfornavigationoptions)
+  * [page.waitForRequest(urlOrPredicate[, options])](#pagewaitforrequesturlorpredicate-options)
+  * [page.waitForResponse(urlOrPredicate[, options])](#pagewaitforresponseurlorpredicate-options)
   * [page.waitForSelector(selector[, options])](#pagewaitforselectorselector-options)
   * [page.waitForXPath(xpath[, options])](#pagewaitforxpathxpath-options)
   * [page.workers()](#pageworkers)
 - [class: Worker](#class-worker)
-  * [worker.evaluate(pageFunction, ...args)](#workerevaluatepagefunction-args)
-  * [worker.evaluateHandle(pageFunction, ...args)](#workerevaluatehandlepagefunction-args)
+  * [worker.evaluate(pageFunction[, ...args])](#workerevaluatepagefunction-args)
+  * [worker.evaluateHandle(pageFunction[, ...args])](#workerevaluatehandlepagefunction-args)
   * [worker.executionContext()](#workerexecutioncontext)
   * [worker.url()](#workerurl)
 - [class: Accessibility](#class-accessibility)
@@ -161,12 +165,12 @@
   * [keyboard.down(key[, options])](#keyboarddownkey-options)
   * [keyboard.press(key[, options])](#keyboardpresskey-options)
   * [keyboard.sendCharacter(char)](#keyboardsendcharacterchar)
-  * [keyboard.type(text, options)](#keyboardtypetext-options)
+  * [keyboard.type(text[, options])](#keyboardtypetext-options)
   * [keyboard.up(key)](#keyboardupkey)
 - [class: Mouse](#class-mouse)
-  * [mouse.click(x, y, [options])](#mouseclickx-y-options)
+  * [mouse.click(x, y[, options])](#mouseclickx-y-options)
   * [mouse.down([options])](#mousedownoptions)
-  * [mouse.move(x, y, [options])](#mousemovex-y-options)
+  * [mouse.move(x, y[, options])](#mousemovex-y-options)
   * [mouse.up([options])](#mouseupoptions)
 - [class: Touchscreen](#class-touchscreen)
   * [touchscreen.tap(x, y)](#touchscreentapx-y)
@@ -181,6 +185,7 @@
   * [dialog.type()](#dialogtype)
 - [class: ConsoleMessage](#class-consolemessage)
   * [consoleMessage.args()](#consolemessageargs)
+  * [consoleMessage.location()](#consolemessagelocation)
   * [consoleMessage.text()](#consolemessagetext)
   * [consoleMessage.type()](#consolemessagetype)
 - [class: Frame](#class-frame)
@@ -194,29 +199,29 @@
   * [frame.childFrames()](#framechildframes)
   * [frame.click(selector[, options])](#frameclickselector-options)
   * [frame.content()](#framecontent)
-  * [frame.evaluate(pageFunction, ...args)](#frameevaluatepagefunction-args)
-  * [frame.evaluateHandle(pageFunction, ...args)](#frameevaluatehandlepagefunction-args)
+  * [frame.evaluate(pageFunction[, ...args])](#frameevaluatepagefunction-args)
+  * [frame.evaluateHandle(pageFunction[, ...args])](#frameevaluatehandlepagefunction-args)
   * [frame.executionContext()](#frameexecutioncontext)
   * [frame.focus(selector)](#framefocusselector)
-  * [frame.goto(url, options)](#framegotourl-options)
+  * [frame.goto(url[, options])](#framegotourl-options)
   * [frame.hover(selector)](#framehoverselector)
   * [frame.isDetached()](#frameisdetached)
   * [frame.name()](#framename)
   * [frame.parentFrame()](#frameparentframe)
   * [frame.select(selector, ...values)](#frameselectselector-values)
-  * [frame.setContent(html)](#framesetcontenthtml)
+  * [frame.setContent(html[, options])](#framesetcontenthtml-options)
   * [frame.tap(selector)](#frametapselector)
   * [frame.title()](#frametitle)
   * [frame.type(selector, text[, options])](#frametypeselector-text-options)
   * [frame.url()](#frameurl)
   * [frame.waitFor(selectorOrFunctionOrTimeout[, options[, ...args]])](#framewaitforselectororfunctionortimeout-options-args)
   * [frame.waitForFunction(pageFunction[, options[, ...args]])](#framewaitforfunctionpagefunction-options-args)
-  * [frame.waitForNavigation(options)](#framewaitfornavigationoptions)
+  * [frame.waitForNavigation([options])](#framewaitfornavigationoptions)
   * [frame.waitForSelector(selector[, options])](#framewaitforselectorselector-options)
   * [frame.waitForXPath(xpath[, options])](#framewaitforxpathxpath-options)
 - [class: ExecutionContext](#class-executioncontext)
-  * [executionContext.evaluate(pageFunction, ...args)](#executioncontextevaluatepagefunction-args)
-  * [executionContext.evaluateHandle(pageFunction, ...args)](#executioncontextevaluatehandlepagefunction-args)
+  * [executionContext.evaluate(pageFunction[, ...args])](#executioncontextevaluatepagefunction-args)
+  * [executionContext.evaluateHandle(pageFunction[, ...args])](#executioncontextevaluatehandlepagefunction-args)
   * [executionContext.frame()](#executioncontextframe)
   * [executionContext.queryObjects(prototypeHandle)](#executioncontextqueryobjectsprototypehandle)
 - [class: JSHandle](#class-jshandle)
@@ -229,8 +234,8 @@
 - [class: ElementHandle](#class-elementhandle)
   * [elementHandle.$(selector)](#elementhandleselector)
   * [elementHandle.$$(selector)](#elementhandleselector-1)
-  * [elementHandle.$$eval(selector, pageFunction, ...args)](#elementhandleevalselector-pagefunction-args)
-  * [elementHandle.$eval(selector, pageFunction, ...args)](#elementhandleevalselector-pagefunction-args-1)
+  * [elementHandle.$$eval(selector, pageFunction[, ...args])](#elementhandleevalselector-pagefunction-args)
+  * [elementHandle.$eval(selector, pageFunction[, ...args])](#elementhandleevalselector-pagefunction-args-1)
   * [elementHandle.$x(expression)](#elementhandlexexpression)
   * [elementHandle.asElement()](#elementhandleaselement)
   * [elementHandle.boundingBox()](#elementhandleboundingbox)
@@ -298,8 +303,8 @@
   * [cdpSession.detach()](#cdpsessiondetach)
   * [cdpSession.send(method[, params])](#cdpsessionsendmethod-params)
 - [class: Coverage](#class-coverage)
-  * [coverage.startCSSCoverage(options)](#coveragestartcsscoverageoptions)
-  * [coverage.startJSCoverage(options)](#coveragestartjscoverageoptions)
+  * [coverage.startCSSCoverage([options])](#coveragestartcsscoverageoptions)
+  * [coverage.startJSCoverage([options])](#coveragestartjscoverageoptions)
   * [coverage.stopCSSCoverage()](#coveragestopcsscoverage)
   * [coverage.stopJSCoverage()](#coveragestopjscoverage)
 - [class: TimeoutError](#class-timeouterror)
@@ -360,7 +365,7 @@ If Puppeteer doesn't find them in the environment during the installation step, 
 
 - `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` - defines HTTP proxy settings that are used to download and run Chromium.
 - `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` - do not download bundled Chromium during installation step.
-- `PUPPETEER_DOWNLOAD_HOST` - overwrite host part of URL that is used to download Chromium
+- `PUPPETEER_DOWNLOAD_HOST` - overwrite URL prefix that is used to download Chromium. Note: this includes protocol and might even include path prefix. Defaults to `https://storage.googleapis.com`.
 - `PUPPETEER_CHROMIUM_REVISION` - specify a certain version of Chromium you'd like Puppeteer to use. See [puppeteer.launch([options])](#puppeteerlaunchoptions) on how executable path is inferred. **BEWARE**: Puppeteer is only [guaranteed to work](https://github.com/GoogleChrome/puppeteer/#q-why-doesnt-puppeteer-vxxx-work-with-chromium-vyyy) with the bundled Chromium, use at your own risk.
 - `PUPPETEER_EXECUTABLE_PATH` - specify an executable path to be used in `puppeteer.launch`. See [puppeteer.launch([options])](#puppeteerlaunchoptions) on how the executable path is inferred. **BEWARE**: Puppeteer is only [guaranteed to work](https://github.com/GoogleChrome/puppeteer/#q-why-doesnt-puppeteer-vxxx-work-with-chromium-vyyy) with the bundled Chromium, use at your own risk.
 
@@ -439,7 +444,8 @@ puppeteer.launch().then(async browser => {
 
 #### puppeteer.connect(options)
 - `options` <[Object]>
-  - `browserWSEndpoint` <[string]> a [browser websocket endpoint](#browserwsendpoint) to connect to.
+  - `browserWSEndpoint` <?[string]> a [browser websocket endpoint](#browserwsendpoint) to connect to.
+  - `browserURL` <?[string]> a browser url to connect to, in format `http://${host}:${port}`. Use interchangeably with `browserWSEndpoint` to let Puppeteer fetch it from [metadata endpoint](https://chromedevtools.github.io/devtools-protocol/#how-do-i-access-the-browser-target).
   - `ignoreHTTPSErrors` <[boolean]> Whether to ignore HTTPS errors during navigation. Defaults to `false`.
   - `defaultViewport` <?[Object]> Sets a consistent viewport for each page. Defaults to an 800x600 viewport. `null` disables the default viewport.
     - `width` <[number]> page width in pixels.
@@ -449,6 +455,7 @@ puppeteer.launch().then(async browser => {
     - `hasTouch`<[boolean]> Specifies if viewport supports touch events. Defaults to `false`
     - `isLandscape` <[boolean]> Specifies if viewport is in landscape mode. Defaults to `false`.
   - `slowMo` <[number]> Slows down Puppeteer operations by the specified amount of milliseconds. Useful so that you can see what is going on.
+  - `transport` <[ConnectionTransport]> **Experimental** Specify a custom transport object for Puppeteer to use.
 - returns: <[Promise]<[Browser]>>
 
 This methods attaches Puppeteer to an existing Chromium instance.
@@ -487,7 +494,7 @@ The default flags that Chromium will be launched with.
     - `hasTouch`<[boolean]> Specifies if viewport supports touch events. Defaults to `false`
     - `isLandscape` <[boolean]> Specifies if viewport is in landscape mode. Defaults to `false`.
   - `args` <[Array]<[string]>> Additional arguments to pass to the browser instance. The list of Chromium flags can be found [here](http://peter.sh/experiments/chromium-command-line-switches/).
-  - `ignoreDefaultArgs` <([boolean]|<[Array]<[string]>>)> If `true`, then do not use [`puppeteer.defaultArgs()`](#puppeteerdefaultargs-options). If an array is given, then filter out the given default arguments. Dangerous option; use with care. Defaults to `false`.
+  - `ignoreDefaultArgs` <[boolean]|[Array]<[string]>> If `true`, then do not use [`puppeteer.defaultArgs()`](#puppeteerdefaultargs-options). If an array is given, then filter out the given default arguments. Dangerous option; use with care. Defaults to `false`.
   - `handleSIGINT` <[boolean]> Close the browser process on Ctrl-C. Defaults to `true`.
   - `handleSIGTERM` <[boolean]> Close the browser process on SIGTERM. Defaults to `true`.
   - `handleSIGHUP` <[boolean]> Close the browser process on SIGHUP. Defaults to `true`.
@@ -959,6 +966,25 @@ of metrics see `page.metrics`.
 
 Emitted when an uncaught exception happens within the page.
 
+#### event: 'popup'
+- <[Page]> Page corresponding to "popup" window
+
+Emitted when the page opens a new tab or window.
+
+```js
+const [popup] = await Promise.all([
+  new Promise(resolve => page.once('popup', resolve)),
+  page.click('a[target=_blank]'),
+]);
+```
+
+```js
+const [popup] = await Promise.all([
+  new Promise(resolve => page.once('popup', resolve)),
+  page.evaluate(() => window.open('https://example.com')),
+]);
+```
+
 #### event: 'request'
 - <[Request]>
 
@@ -1096,10 +1122,16 @@ Brings page to front (activates tab).
 
 Get the browser the page belongs to.
 
+#### page.browserContext()
+
+- returns: <[BrowserContext]>
+
+Get the browser context that the page belongs to.
+
 #### page.click(selector[, options])
 - `selector` <[string]> A [selector] to search for element to click. If there are multiple elements satisfying the selector, the first will be clicked.
 - `options` <[Object]>
-  - `button` <[string]> `left`, `right`, or `middle`, defaults to `left`.
+  - `button` <"left"|"right"|"middle"> Defaults to `left`.
   - `clickCount` <[number]> defaults to 1. See [UIEvent.detail].
   - `delay` <[number]> Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
 - returns: <[Promise]> Promise which resolves when the element matching `selector` is successfully clicked. The Promise will be rejected if there is no element matching `selector`.
@@ -1118,7 +1150,7 @@ const [response] = await Promise.all([
 
 Shortcut for [page.mainFrame().click(selector[, options])](#frameclickselector-options).
 
-#### page.close(options)
+#### page.close([options])
 - `options` <[Object]>
   - `runBeforeUnload` <[boolean]> Defaults to `false`. Whether to run the
     [before unload](https://developer.mozilla.org/en-US/docs/Web/Events/beforeunload)
@@ -1131,11 +1163,11 @@ By default, `page.close()` **does not** run beforeunload handlers.
 > and should be handled manually via page's ['dialog'](#event-dialog) event.
 
 #### page.content()
-- returns: <[Promise]<[String]>>
+- returns: <[Promise]<[string]>>
 
 Gets the full HTML contents of the page, including the doctype.
 
-#### page.cookies(...urls)
+#### page.cookies([...urls])
 - `...urls` <...[string]>
 - returns: <[Promise]<[Array]<[Object]>>>
   - `name` <[string]>
@@ -1143,10 +1175,11 @@ Gets the full HTML contents of the page, including the doctype.
   - `domain` <[string]>
   - `path` <[string]>
   - `expires` <[number]> Unix time in seconds.
+  - `size` <[number]>
   - `httpOnly` <[boolean]>
   - `secure` <[boolean]>
   - `session` <[boolean]>
-  - `sameSite` <[string]> `"Strict"` or `"Lax"`.
+  - `sameSite` <"Strict"|"Lax">
 
 If no URLs are specified, this method returns cookies for the current page URL.
 If URLs are specified, only cookies for those URLs are returned.
@@ -1161,7 +1194,6 @@ If URLs are specified, only cookies for those URLs are returned.
   - `url` <[string]>
   - `domain` <[string]>
   - `path` <[string]>
-  - `secure` <[boolean]>
 - returns: <[Promise]>
 
 #### page.emulate(options)
@@ -1202,7 +1234,7 @@ List of all available devices is available in the source code: [DeviceDescriptor
 - `mediaType` <?[string]> Changes the CSS media type of the page. The only allowed values are `'screen'`, `'print'` and `null`. Passing `null` disables media emulation.
 - returns: <[Promise]>
 
-#### page.evaluate(pageFunction, ...args)
+#### page.evaluate(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in the page context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[Serializable]>> Promise which resolves to the return value of `pageFunction`
@@ -1235,7 +1267,7 @@ await bodyHandle.dispose();
 
 Shortcut for [page.mainFrame().evaluate(pageFunction, ...args)](#frameevaluatepagefunction-args).
 
-#### page.evaluateHandle(pageFunction, ...args)
+#### page.evaluateHandle(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in the page context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[JSHandle]>> Promise which resolves to the return value of `pageFunction` as in-page object (JSHandle)
@@ -1259,7 +1291,7 @@ await resultHandle.dispose();
 
 Shortcut for [page.mainFrame().executionContext().evaluateHandle(pageFunction, ...args)](#executioncontextevaluatehandlepagefunction-args).
 
-#### page.evaluateOnNewDocument(pageFunction, ...args)
+#### page.evaluateOnNewDocument(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in browser context
 - `...args` <...[Serializable]> Arguments to pass to `pageFunction`
 - returns: <[Promise]>
@@ -1361,7 +1393,7 @@ Shortcut for [page.mainFrame().focus(selector)](#framefocusselector).
 #### page.frames()
 - returns: <[Array]<[Frame]>> An array of all frames attached to the page.
 
-#### page.goBack(options)
+#### page.goBack([options])
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
   - `waitUntil` <[string]|[Array]<[string]>> When to consider navigation succeeded, defaults to `load`. Given an array of event strings, navigation is considered to be successful after all events have been fired. Events can be either:
@@ -1374,7 +1406,7 @@ can not go back, resolves to `null`.
 
 Navigate to the previous page in history.
 
-#### page.goForward(options)
+#### page.goForward([options])
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
   - `waitUntil` <[string]|[Array]<[string]>> When to consider navigation succeeded, defaults to `load`. Given an array of event strings, navigation is considered to be successful after all events have been fired. Events can be either:
@@ -1387,7 +1419,7 @@ can not go forward, resolves to `null`.
 
 Navigate to the next page in history.
 
-#### page.goto(url, options)
+#### page.goto(url[, options])
 - `url` <[string]> URL to navigate page to. The url should include scheme, e.g. `https://`.
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
@@ -1422,7 +1454,7 @@ Shortcut for [page.mainFrame().hover(selector)](#framehoverselector).
 
 #### page.isClosed()
 
-- returns: boolean
+- returns: <[boolean]>
 
 Indicates that the page has been closed.
 
@@ -1457,7 +1489,7 @@ Page is guaranteed to have a main frame which persists during navigations.
 
 - returns: <[Mouse]>
 
-#### page.pdf(options)
+#### page.pdf([options])
 - `options` <[Object]> Options object which might have the following properties:
   - `path` <[string]> The file path to save the PDF to. If `path` is a relative path, then it is resolved relative to [current working directory](https://nodejs.org/api/process.html#process_process_cwd). If no path is provided, the PDF won't be saved to the disk.
   - `scale` <[number]> Scale of the webpage rendering. Defaults to `1`. Scale amount must be between 0.1 and 2.
@@ -1473,13 +1505,13 @@ Page is guaranteed to have a main frame which persists during navigations.
   - `landscape` <[boolean]> Paper orientation. Defaults to `false`.
   - `pageRanges` <[string]> Paper ranges to print, e.g., '1-5, 8, 11-13'. Defaults to the empty string, which means print all pages.
   - `format` <[string]> Paper format. If set, takes priority over `width` or `height` options. Defaults to 'Letter'.
-  - `width` <[string]> Paper width, accepts values labeled with units.
-  - `height` <[string]> Paper height, accepts values labeled with units.
+  - `width` <[string]|[number]> Paper width, accepts values labeled with units.
+  - `height` <[string]|[number]> Paper height, accepts values labeled with units.
   - `margin` <[Object]> Paper margins, defaults to none.
-    - `top` <[string]> Top margin, accepts values labeled with units.
-    - `right` <[string]> Right margin, accepts values labeled with units.
-    - `bottom` <[string]> Bottom margin, accepts values labeled with units.
-    - `left` <[string]> Left margin, accepts values labeled with units.
+    - `top` <[string]|[number]> Top margin, accepts values labeled with units.
+    - `right` <[string]|[number]> Right margin, accepts values labeled with units.
+    - `bottom` <[string]|[number]> Bottom margin, accepts values labeled with units.
+    - `left` <[string]|[number]> Left margin, accepts values labeled with units.
   - `preferCSSPageSize` <[boolean]> Give any CSS `@page` size declared in the page priority over what is declared in `width` and `height` or `format` options. Defaults to `false`, which will scale the content to fit the paper size.
 - returns: <[Promise]<[Buffer]>> Promise which resolves with PDF buffer.
 
@@ -1546,7 +1578,7 @@ await mapPrototype.dispose();
 
 Shortcut for [page.mainFrame().executionContext().queryObjects(prototypeHandle)](#executioncontextqueryobjectsprototypehandle).
 
-#### page.reload(options)
+#### page.reload([options])
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
   - `waitUntil` <[string]|[Array]<[string]>> When to consider navigation succeeded, defaults to `load`. Given an array of event strings, navigation is considered to be successful after all events have been fired. Events can be either:
@@ -1569,7 +1601,7 @@ Shortcut for [page.mainFrame().executionContext().queryObjects(prototypeHandle)]
     - `height` <[number]> height of clipping area
   - `omitBackground` <[boolean]> Hides default white background and allows capturing screenshots with transparency. Defaults to `false`.
   - `encoding` <[string]> The encoding of the image, can be either `base64` or `binary`. Defaults to `binary`.
-- returns: <[Promise]<[Buffer|String]>> Promise which resolves to buffer or a base64 string (depending on the value of `encoding`) with captured screenshot.
+- returns: <[Promise]<[string]|[Buffer]>> Promise which resolves to buffer or a base64 string (depending on the value of `encoding`) with captured screenshot.
 
 > **NOTE** Screenshots take at least 1/6 second on OS X. See https://crbug.com/741689 for discussion.
 
@@ -1597,14 +1629,21 @@ Toggles bypassing page's Content-Security-Policy.
 > **NOTE** CSP bypassing happens at the moment of CSP initialization rather then evaluation. Usually this means
 that `page.setBypassCSP` should be called before navigating to the domain.
 
-#### page.setCacheEnabled(enabled)
+#### page.setCacheEnabled([enabled])
 - `enabled` <[boolean]> sets the `enabled` state of the cache.
 - returns: <[Promise]>
 
 Toggles ignoring cache for each request based on the enabled state. By default, caching is enabled.
 
-#### page.setContent(html)
+#### page.setContent(html[, options])
 - `html` <[string]> HTML markup to assign to the page.
+- `options` <[Object]> Parameters which might have the following properties:
+  - `timeout` <[number]> Maximum time in milliseconds for resources to load, defaults to 30 seconds, pass `0` to disable timeout.
+  - `waitUntil` <[string]|[Array]<[string]>> When to consider setting markup succeeded, defaults to `load`. Given an array of event strings, setting content is considered to be successful after all events have been fired. Events can be either:
+    - `load` - consider setting content to be finished when the `load` event is fired.
+    - `domcontentloaded` - consider setting content to be finished when the `DOMContentLoaded` event is fired.
+    - `networkidle0` - consider setting content to be finished when there are no more than 0 network connections for at least `500` ms.
+    - `networkidle2` - consider setting content to be finished when there are no more than 2 network connections for at least `500` ms.
 - returns: <[Promise]>
 
 #### page.setCookie(...cookies)
@@ -1617,7 +1656,7 @@ Toggles ignoring cache for each request based on the enabled state. By default, 
   - `expires` <[number]> Unix time in seconds.
   - `httpOnly` <[boolean]>
   - `secure` <[boolean]>
-  - `sameSite` <[string]> `"Strict"` or `"Lax"`.
+  - `sameSite` <"Strict"|"Lax">
 - returns: <[Promise]>
 
 ```js
@@ -1628,11 +1667,11 @@ await page.setCookie(cookieObject1, cookieObject2);
 - `timeout` <[number]> Maximum navigation time in milliseconds
 
 This setting will change the default maximum navigation time of 30 seconds for the following methods:
-- [page.goto(url, options)](#pagegotourl-options)
-- [page.goBack(options)](#pagegobackoptions)
-- [page.goForward(options)](#pagegoforwardoptions)
-- [page.reload(options)](#pagereloadoptions)
-- [page.waitForNavigation(options)](#pagewaitfornavigationoptions)
+- [page.goto(url[, options])](#pagegotourl-options)
+- [page.goBack([options])](#pagegobackoptions)
+- [page.goForward([options])](#pagegoforwardoptions)
+- [page.reload([options])](#pagereloadoptions)
+- [page.waitForNavigation([options])](#pagewaitfornavigationoptions)
 
 #### page.setExtraHTTPHeaders(headers)
 - `headers` <[Object]> An object containing additional HTTP headers to be sent with every request. All header values must be strings.
@@ -1643,7 +1682,7 @@ The extra HTTP headers will be sent with every request the page initiates.
 > **NOTE** page.setExtraHTTPHeaders does not guarantee the order of headers in the outgoing requests.
 
 #### page.setGeolocation(options)
-- `options`
+- `options` <[Object]>
   - `latitude` <[number]> Latitude between -90 and 90.
   - `longitude` <[number]> Longitude between -180 and 180.
   - `accuracy` <[number]> Optional non-negative accuracy value.
@@ -1702,8 +1741,8 @@ puppeteer.launch().then(async browser => {
 
 #### page.setViewport(viewport)
 - `viewport` <[Object]>
-  - `width` <[number]> page width in pixels.
-  - `height` <[number]> page height in pixels.
+  - `width` <[number]> page width in pixels. **required**
+  - `height` <[number]> page height in pixels. **required**
   - `deviceScaleFactor` <[number]> Specify device scale factor (can be thought of as dpr). Defaults to `1`.
   - `isMobile` <[boolean]> Whether the `meta viewport` tag is taken into account. Defaults to `false`.
   - `hasTouch`<[boolean]> Specifies if viewport supports touch events. Defaults to `false`
@@ -1832,7 +1871,7 @@ await page.waitForFunction(selector => !!document.querySelector(selector), {}, s
 
 Shortcut for [page.mainFrame().waitForFunction(pageFunction[, options[, ...args]])](#framewaitforfunctionpagefunction-options-args).
 
-#### page.waitForNavigation(options)
+#### page.waitForNavigation([options])
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
   - `waitUntil` <[string]|[Array]<[string]>> When to consider navigation succeeded, defaults to `load`. Given an array of event strings, navigation is considered to be successful after all events have been fired. Events can be either:
@@ -1840,7 +1879,7 @@ Shortcut for [page.mainFrame().waitForFunction(pageFunction[, options[, ...args]
     - `domcontentloaded` - consider navigation to be finished when the `DOMContentLoaded` event is fired.
     - `networkidle0` - consider navigation to be finished when there are no more than 0 network connections for at least `500` ms.
     - `networkidle2` - consider navigation to be finished when there are no more than 2 network connections for at least `500` ms.
-- returns: <[Promise]<[?Response]>> Promise which resolves to the main resource response. In case of multiple redirects, the navigation will resolve with the response of the last redirect. In case of navigation to a different anchor or navigation due to History API usage, the navigation will resolve with `null`.
+- returns: <[Promise]<?[Response]>> Promise which resolves to the main resource response. In case of multiple redirects, the navigation will resolve with the response of the last redirect. In case of navigation to a different anchor or navigation due to History API usage, the navigation will resolve with `null`.
 
 This resolves when the page navigates to a new URL or reloads. It is useful for when you run code
 which will indirectly cause the page to navigate. Consider this example:
@@ -1856,7 +1895,7 @@ const [response] = await Promise.all([
 
 Shortcut for [page.mainFrame().waitForNavigation(options)](#framewaitfornavigationoptions).
 
-#### page.waitForRequest(urlOrPredicate, options)
+#### page.waitForRequest(urlOrPredicate[, options])
 - `urlOrPredicate` <[string]|[Function]> A URL or predicate to wait for.
 - `options` <[Object]> Optional waiting parameters
   - `timeout` <[number]> Maximum wait time in milliseconds, defaults to 30 seconds, pass `0` to disable the timeout.
@@ -1868,7 +1907,7 @@ const finalRequest = await page.waitForRequest(request => request.url() === 'htt
 return firstRequest.url();
 ```
 
-#### page.waitForResponse(urlOrPredicate, options)
+#### page.waitForResponse(urlOrPredicate[, options])
 - `urlOrPredicate` <[string]|[Function]> A URL or predicate to wait for.
 - `options` <[Object]> Optional waiting parameters
   - `timeout` <[number]> Maximum wait time in milliseconds, defaults to 30 seconds, pass `0` to disable the timeout.
@@ -1958,7 +1997,7 @@ for (const worker of page.workers())
   console.log('  ' + worker.url());
 ```
 
-#### worker.evaluate(pageFunction, ...args)
+#### worker.evaluate(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in the worker context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[Serializable]>> Promise which resolves to the return value of `pageFunction`
@@ -1969,7 +2008,7 @@ If the function passed to the `worker.evaluate` returns a non-[Serializable] val
 
 Shortcut for [(await worker.executionContext()).evaluate(pageFunction, ...args)](#executioncontextevaluatepagefunction-args).
 
-#### worker.evaluateHandle(pageFunction, ...args)
+#### worker.evaluateHandle(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in the page context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[JSHandle]>> Promise which resolves to the return value of `pageFunction` as in-page object (JSHandle)
@@ -2002,7 +2041,7 @@ Most of the accessibility tree gets filtered out when converting from Blink AX T
 #### accessibility.snapshot([options])
 - `options` <[Object]>
   - `interestingOnly` <[boolean]> Prune uninteresting nodes from the tree. Defaults to `true`.
-- returns: <[Promise]<[AXNode]>> Returns an AXNode object with the following properties:
+- returns: <[Promise]<[Object]>> Returns an [AXNode] object with the following properties:
   - `role` <[string]> The [role](https://www.w3.org/TR/wai-aria/#usage_intro).
   - `name` <[string]> A human readable name for the node.
   - `value` <[string]|[number]> The current value of the node.
@@ -2019,8 +2058,8 @@ Most of the accessibility tree gets filtered out when converting from Blink AX T
   - `readonly` <[boolean]> Whether the node is read only.
   - `required` <[boolean]> Whether the node is required.
   - `selected` <[boolean]> Whether the node is selected in its parent node.
-  - `checked` <[boolean]|[string]> Whether the checkbox is checked, or "mixed".
-  - `pressed` <[boolean]|[string]> Whether the toggle button is checked, or "mixed".
+  - `checked` <[boolean]|"mixed"> Whether the checkbox is checked, or "mixed".
+  - `pressed` <[boolean]|"mixed"> Whether the toggle button is checked, or "mixed".
   - `level` <[number]> The level of a heading.
   - `valuemin` <[number]> The minimum value in a node.
   - `valuemax` <[number]> The maximum value in a node.
@@ -2028,7 +2067,7 @@ Most of the accessibility tree gets filtered out when converting from Blink AX T
   - `haspopup` <[string]> What kind of popup is currently being shown for a node.
   - `invalid` <[string]> Whether and in what way this node's value is invalid.
   - `orientation` <[string]> Whether the node is oriented horizontally or vertically.
-  - `children` <[Array]<[AXNode]>> Child nodes of this node, if any.
+  - `children` <[Array]<[Object]>> Child [AXNode]s of this node, if any.
 
 Captures the current state of the accessibility tree. The returned object represents the root accessible node of the page.
 
@@ -2129,7 +2168,7 @@ page.keyboard.sendCharacter('嗨');
 
 > **NOTE** Modifier keys DO NOT effect `keyboard.sendCharacter`. Holding down `Shift` will not type the text in upper case.
 
-#### keyboard.type(text, options)
+#### keyboard.type(text[, options])
 - `text` <[string]> A text to type into a focused element.
 - `options` <[Object]>
   - `delay` <[number]> Time to wait between key presses in milliseconds. Defaults to 0.
@@ -2169,11 +2208,11 @@ await page.mouse.move(0, 0);
 await page.mouse.up();
 ```
 
-#### mouse.click(x, y, [options])
+#### mouse.click(x, y[, options])
 - `x` <[number]>
 - `y` <[number]>
 - `options` <[Object]>
-  - `button` <[string]> `left`, `right`, or `middle`, defaults to `left`.
+  - `button` <"left"|"right"|"middle"> Defaults to `left`.
   - `clickCount` <[number]> defaults to 1. See [UIEvent.detail].
   - `delay` <[number]> Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
 - returns: <[Promise]>
@@ -2182,13 +2221,13 @@ Shortcut for [`mouse.move`](#mousemovex-y-options), [`mouse.down`](#mousedownopt
 
 #### mouse.down([options])
 - `options` <[Object]>
-  - `button` <[string]> `left`, `right`, or `middle`, defaults to `left`.
+  - `button` <"left"|"right"|"middle"> Defaults to `left`.
   - `clickCount` <[number]> defaults to 1. See [UIEvent.detail].
 - returns: <[Promise]>
 
 Dispatches a `mousedown` event.
 
-#### mouse.move(x, y, [options])
+#### mouse.move(x, y[, options])
 - `x` <[number]>
 - `y` <[number]>
 - `options` <[Object]>
@@ -2199,7 +2238,7 @@ Dispatches a `mousemove` event.
 
 #### mouse.up([options])
 - `options` <[Object]>
-  - `button` <[string]> `left`, `right`, or `middle`, defaults to `left`.
+  - `button` <"left"|"right"|"middle"> Defaults to `left`.
   - `clickCount` <[number]> defaults to 1. See [UIEvent.detail].
 - returns: <[Promise]>
 
@@ -2277,6 +2316,12 @@ puppeteer.launch().then(async browser => {
 
 #### consoleMessage.args()
 - returns: <[Array]<[JSHandle]>>
+
+#### consoleMessage.location()
+- returns: <[Object]>
+  - `url` <[string]> URL of the resource if known or `undefined` otherwise.
+  - `lineNumber` <[number]> line number in the resource if known or `undefined` otherwise.
+  - `columnNumber` <[number]> column number in the resource if known or `undefined` otherwise.
 
 #### consoleMessage.text()
 - returns: <[string]>
@@ -2397,7 +2442,7 @@ Adds a `<link rel="stylesheet">` tag into the page with the desired url or a `<s
 #### frame.click(selector[, options])
 - `selector` <[string]> A [selector] to search for element to click. If there are multiple elements satisfying the selector, the first will be clicked.
 - `options` <[Object]>
-  - `button` <[string]> `left`, `right`, or `middle`, defaults to `left`.
+  - `button` <"left"|"right"|"middle"> Defaults to `left`.
   - `clickCount` <[number]> defaults to 1. See [UIEvent.detail].
   - `delay` <[number]> Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
 - returns: <[Promise]> Promise which resolves when the element matching `selector` is successfully clicked. The Promise will be rejected if there is no element matching `selector`.
@@ -2415,11 +2460,11 @@ const [response] = await Promise.all([
 ```
 
 #### frame.content()
-- returns: <[Promise]<[String]>>
+- returns: <[Promise]<[string]>>
 
 Gets the full HTML contents of the frame, including the doctype.
 
-#### frame.evaluate(pageFunction, ...args)
+#### frame.evaluate(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in browser context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to  `pageFunction`
 - returns: <[Promise]<[Serializable]>> Promise which resolves to the return value of `pageFunction`
@@ -2448,7 +2493,7 @@ const html = await frame.evaluate(body => body.innerHTML, bodyHandle);
 await bodyHandle.dispose();
 ```
 
-#### frame.evaluateHandle(pageFunction, ...args)
+#### frame.evaluateHandle(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in the page context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[JSHandle]>> Promise which resolves to the return value of `pageFunction` as in-page object (JSHandle)
@@ -2489,7 +2534,7 @@ Returns promise that resolves to the frame's default execution context.
 This method fetches an element with `selector` and focuses it.
 If there's no element matching `selector`, the method throws an error.
 
-#### frame.goto(url, options)
+#### frame.goto(url[, options])
 - `url` <[string]> URL to navigate frame to. The url should include scheme, e.g. `https://`.
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
@@ -2549,8 +2594,15 @@ frame.select('select#colors', 'blue'); // single selection
 frame.select('select#colors', 'red', 'green', 'blue'); // multiple selections
 ```
 
-#### frame.setContent(html)
+#### frame.setContent(html[, options])
 - `html` <[string]> HTML markup to assign to the page.
+- `options` <[Object]> Parameters which might have the following properties:
+  - `timeout` <[number]> Maximum time in milliseconds for resources to load, defaults to 30 seconds, pass `0` to disable timeout.
+  - `waitUntil` <[string]|[Array]<[string]>> When to consider setting markup succeeded, defaults to `load`. Given an array of event strings, setting content is considered to be successful after all events have been fired. Events can be either:
+    - `load` - consider setting content to be finished when the `load` event is fired.
+    - `domcontentloaded` - consider setting content to be finished when the `DOMContentLoaded` event is fired.
+    - `networkidle0` - consider setting content to be finished when there are no more than 0 network connections for at least `500` ms.
+    - `networkidle2` - consider setting content to be finished when there are no more than 2 network connections for at least `500` ms.
 - returns: <[Promise]>
 
 #### frame.tap(selector)
@@ -2643,7 +2695,7 @@ const selector = '.foo';
 await page.waitForFunction(selector => !!document.querySelector(selector), {}, selector);
 ```
 
-#### frame.waitForNavigation(options)
+#### frame.waitForNavigation([options])
 - `options` <[Object]> Navigation parameters which might have the following properties:
   - `timeout` <[number]> Maximum navigation time in milliseconds, defaults to 30 seconds, pass `0` to disable timeout. The default value can be changed by using the [page.setDefaultNavigationTimeout(timeout)](#pagesetdefaultnavigationtimeouttimeout) method.
   - `waitUntil` <[string]|[Array]<[string]>> When to consider navigation succeeded, defaults to `load`. Given an array of event strings, navigation is considered to be successful after all events have been fired. Events can be either:
@@ -2651,7 +2703,7 @@ await page.waitForFunction(selector => !!document.querySelector(selector), {}, s
     - `domcontentloaded` - consider navigation to be finished when the `DOMContentLoaded` event is fired.
     - `networkidle0` - consider navigation to be finished when there are no more than 0 network connections for at least `500` ms.
     - `networkidle2` - consider navigation to be finished when there are no more than 2 network connections for at least `500` ms.
-- returns: <[Promise]<[?Response]>> Promise which resolves to the main resource response. In case of multiple redirects, the navigation will resolve with the response of the last redirect. In case of navigation to a different anchor or navigation due to History API usage, the navigation will resolve with `null`.
+- returns: <[Promise]<?[Response]>> Promise which resolves to the main resource response. In case of multiple redirects, the navigation will resolve with the response of the last redirect. In case of navigation to a different anchor or navigation due to History API usage, the navigation will resolve with `null`.
 
 This resolves when the frame navigates to a new URL. It is useful for when you run code
 which will indirectly cause the frame to navigate. Consider this example:
@@ -2731,7 +2783,7 @@ The class represents a context for JavaScript execution. A [Page] might have man
 
 Besides pages, execution contexts can be found in [workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API).
 
-#### executionContext.evaluate(pageFunction, ...args)
+#### executionContext.evaluate(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in `executionContext`
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[Serializable]>> Promise which resolves to the return value of `pageFunction`
@@ -2760,7 +2812,7 @@ await twoHandle.dispose();
 console.log(result); // prints '3'.
 ```
 
-#### executionContext.evaluateHandle(pageFunction, ...args)
+#### executionContext.evaluateHandle(pageFunction[, ...args])
 - `pageFunction` <[function]|[string]> Function to be evaluated in the `executionContext`
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
 - returns: <[Promise]<[JSHandle]>> Promise which resolves to the return value of `pageFunction` as in-page object (JSHandle)
@@ -2798,7 +2850,7 @@ await resultHandle.dispose();
 
 #### executionContext.queryObjects(prototypeHandle)
 - `prototypeHandle` <[JSHandle]> A handle to the object prototype.
-- returns: <[JSHandle]> A handle to an array of objects with this prototype
+- returns: <[Promise]<[JSHandle]>> A handle to an array of objects with this prototype
 
 The method iterates the JavaScript heap and finds all the objects with the given prototype.
 
@@ -2839,7 +2891,7 @@ Returns either `null` or the object handle itself, if the object handle is an in
 The `jsHandle.dispose` method stops referencing the element handle.
 
 #### jsHandle.executionContext()
-- returns: [ExecutionContext]
+- returns: <[ExecutionContext]>
 
 Returns execution context the handle belongs to.
 
@@ -2905,7 +2957,7 @@ The method runs `element.querySelector` within the page. If no element matches t
 
 The method runs `element.querySelectorAll` within the page. If no elements match the selector, the return value resolves to `[]`.
 
-#### elementHandle.$$eval(selector, pageFunction, ...args)
+#### elementHandle.$$eval(selector, pageFunction[, ...args])
 - `selector` <[string]> A [selector] to query page for
 - `pageFunction` <[function]> Function to be evaluated in browser context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
@@ -2927,7 +2979,7 @@ const feedHandle = await page.$('.feed');
 expect(await feedHandle.$$eval('.tweet', nodes => nodes.map(n => n.innerText))).toEqual(['Hello!', 'Hi!']);
 ```
 
-#### elementHandle.$eval(selector, pageFunction, ...args)
+#### elementHandle.$eval(selector, pageFunction[, ...args])
 - `selector` <[string]> A [selector] to query page for
 - `pageFunction` <[function]> Function to be evaluated in browser context
 - `...args` <...[Serializable]|[JSHandle]> Arguments to pass to `pageFunction`
@@ -2964,10 +3016,18 @@ This method returns the bounding box of the element (relative to the main frame)
 
 #### elementHandle.boxModel()
 - returns: <[Promise]<?[Object]>>
-  - content <[Array]<[Object]>> Content box, represented as an array of {x, y} points.
-  - padding <[Array]<[Object]>> Padding box, represented as an array of {x, y} points.
-  - border <[Array]<[Object]>> Border box, represented as an array of {x, y} points.
-  - margin <[Array]<[Object]>> Margin box, represented as an array of {x, y} points.
+  - content <[Array]<[Object]>> Content box.
+    - x <[number]>
+    - y <[number]>
+  - padding <[Array]<[Object]>> Padding box.
+    - x <[number]>
+    - y <[number]>
+  - border <[Array]<[Object]>> Border box.
+    - x <[number]>
+    - y <[number]>
+  - margin <[Array]<[Object]>> Margin box.
+    - x <[number]>
+    - y <[number]>
   - width <[number]> Element's width.
   - height <[number]> Element's height.
 
@@ -2975,7 +3035,7 @@ This method returns boxes of the element, or `null` if the element is not visibl
 
 #### elementHandle.click([options])
 - `options` <[Object]>
-  - `button` <[string]> `left`, `right`, or `middle`, defaults to `left`.
+  - `button` <"left"|"right"|"middle"> Defaults to `left`.
   - `clickCount` <[number]> defaults to 1. See [UIEvent.detail].
   - `delay` <[number]> Time to wait between `mousedown` and `mouseup` in milliseconds. Defaults to 0.
 - returns: <[Promise]> Promise which resolves when the element is successfully clicked. Promise gets rejected if the element is detached from DOM.
@@ -2992,7 +3052,7 @@ If the element is detached from DOM, the method throws an error.
 The `elementHandle.dispose` method stops referencing the element handle.
 
 #### elementHandle.executionContext()
-- returns: [ExecutionContext]
+- returns: <[ExecutionContext]>
 
 #### elementHandle.focus()
 - returns: <[Promise]>
@@ -3053,7 +3113,7 @@ If `key` is a single character and no modifier keys besides `Shift` are being he
 
 #### elementHandle.screenshot([options])
 - `options` <[Object]> Same options as in [page.screenshot](#pagescreenshotoptions).
-- returns: <[Promise]<[Buffer]>> Promise which resolves to buffer with captured screenshot.
+- returns: <[Promise]<[string]|[Buffer]>> Promise which resolves to buffer or a base64 string (depending on the value of `options.encoding`) with captured screenshot.
 
 This method scrolls element into view if needed, and then uses [page.screenshot](#pagescreenshotoptions) to take a screenshot of the element.
 If the element is detached from DOM, the method throws an error.
@@ -3222,7 +3282,7 @@ ResourceType will be one of the following: `document`, `stylesheet`, `image`, `m
   - `status` <[number]> Response status code, defaults to `200`.
   - `headers` <[Object]> Optional response headers
   - `contentType` <[string]> If set, equals to setting `Content-Type` response header
-  - `body` <[Buffer]|[string]> Optional response body
+  - `body` <[string]|[Buffer]> Optional response body
 - returns: <[Promise]>
 
 Fulfills request with given response. To use this, request interception should
@@ -3362,7 +3422,7 @@ Get the target that opened this target. Top-level targets return `null`.
 If the target is not of type `"page"` or `"background_page"`, returns `null`.
 
 #### target.type()
-- returns: <[string]>
+- returns: <"page"|"background_page"|"service_worker"|"other"|"browser">
 
 Identifies what kind of target this is. Can be `"page"`, [`"background_page"`](https://developer.chrome.com/extensions/background_pages), `"service_worker"`, `"browser"` or `"other"`.
 
@@ -3435,12 +3495,12 @@ console.log(`Bytes used: ${usedBytes / totalBytes * 100}%`);
 _To output coverage in a form consumable by [Istanbul](https://github.com/istanbuljs),
   see [puppeteer-to-istanbul](https://github.com/istanbuljs/puppeteer-to-istanbul)._
 
-#### coverage.startCSSCoverage(options)
+#### coverage.startCSSCoverage([options])
 - `options` <[Object]>  Set of configurable options for coverage
   - `resetOnNavigation` <[boolean]> Whether to reset coverage on every navigation. Defaults to `true`.
 - returns: <[Promise]> Promise that resolves when coverage is started
 
-#### coverage.startJSCoverage(options)
+#### coverage.startJSCoverage([options])
 - `options` <[Object]>  Set of configurable options for coverage
   - `resetOnNavigation` <[boolean]> Whether to reset coverage on every navigation. Defaults to `true`.
   - `reportAnonymousScripts` <[boolean]> Whether anonymous scripts generated by the page should be reported. Defaults to `false`.
@@ -3522,3 +3582,4 @@ TimeoutError is emitted whenever certain operations are terminated due to timeou
 [Worker]: #class-worker "Worker"
 [Accessibility]: #class-accessibility "Accessibility"
 [AXNode]: #accessibilitysnapshotoptions "AXNode"
+[ConnectionTransport]: ../lib/WebSocketTransport.js "ConnectionTransport"
