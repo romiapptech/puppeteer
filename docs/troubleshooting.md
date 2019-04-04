@@ -1,6 +1,41 @@
 # Troubleshooting
 
-## Chrome headless doesn't launch
+<!-- GEN:toc -->
+- [Chrome headless doesn't launch on Windows](#chrome-headless-doesnt-launch-on-windows)
+- [Chrome headless doesn't launch on UNIX](#chrome-headless-doesnt-launch-on-unix)
+- [Setting Up Chrome Linux Sandbox](#setting-up-chrome-linux-sandbox)
+  * [[recommended] Enable user namespace cloning](#recommended-enable-user-namespace-cloning)
+  * [[alternative] Setup setuid sandbox](#alternative-setup-setuid-sandbox)
+- [Running Puppeteer on Travis CI](#running-puppeteer-on-travis-ci)
+- [Running Puppeteer in Docker](#running-puppeteer-in-docker)
+  * [Running on Alpine](#running-on-alpine)
+    - [Tips](#tips)
+- [Running Puppeteer in the cloud](#running-puppeteer-in-the-cloud)
+  * [Running Puppeteer on Google App Engine](#running-puppeteer-on-google-app-engine)
+  * [Running Puppeteer on Google Cloud Functions](#running-puppeteer-on-google-cloud-functions)
+  * [Running Puppeteer on Heroku](#running-puppeteer-on-heroku)
+  * [Running Puppeteer on AWS Lambda](#running-puppeteer-on-aws-lambda)
+- [Code Transpilation Issues](#code-transpilation-issues)
+<!-- GEN:stop -->
+
+## Chrome headless doesn't launch on Windows
+
+Some [chrome policies](https://support.google.com/chrome/a/answer/7532015?hl=en) might enforce running Chrome/Chromium
+with certain extensions.
+
+Puppeteer passes `--disable-extensions` flag by default and will fail to launch when such policies are active.
+
+To work around this, try running without the flag:
+
+```js
+const browser = await puppeteer.launch({
+  ignoreDefaultArgs: ['--disable-extensions'],
+});
+```
+
+> Context: [issue 3681](https://github.com/GoogleChrome/puppeteer/issues/3681#issuecomment-447865342).
+
+## Chrome headless doesn't launch on UNIX
 
 Make sure all the necessary dependencies are installed. You can run `ldd chrome | grep not` on a Linux
 machine to check which dependencies are missing. The common ones are provided below.
@@ -186,27 +221,24 @@ To fix, you'll need to install the missing dependencies and the
 latest Chromium package in your Dockerfile:
 
 ```Dockerfile
-FROM node:8-slim
-
-# See https://crbug.com/795759
-RUN apt-get update && apt-get install -yq libgconf-2-4
+FROM node:10-slim
 
 # Install latest chrome dev package and fonts to support major charsets (Chinese, Japanese, Arabic, Hebrew, Thai and a few others)
 # Note: this installs the necessary libs to make the bundled version of Chromium that Puppeteer
 # installs, work.
-RUN apt-get update && apt-get install -y wget --no-install-recommends \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
     && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
     && apt-get update \
     && apt-get install -y google-chrome-unstable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst ttf-freefont \
       --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get purge --auto-remove -y curl \
     && rm -rf /src/*.deb
 
-# It's a good idea to use dumb-init to help prevent zombie chrome processes.
-ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
-RUN chmod +x /usr/local/bin/dumb-init
+# If running Docker >= 1.13.0 use docker run's --init arg to reap zombie processes, otherwise
+# uncomment the following lines to have `dumb-init` as PID 1
+# ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
+# RUN chmod +x /usr/local/bin/dumb-init
+# ENTRYPOINT ["dumb-init", "--"]
 
 # Uncomment to skip the chromium download when installing puppeteer. If you do,
 # you'll need to launch puppeteer with:
@@ -214,10 +246,10 @@ RUN chmod +x /usr/local/bin/dumb-init
 # ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 # Install puppeteer so it's available in the container.
-RUN npm i puppeteer
-
-# Add user so we don't need --no-sandbox.
-RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+RUN npm i puppeteer \
+    # Add user so we don't need --no-sandbox.
+    # same layer as npm install to keep re-chowned files from using up several hundred MBs more space
+    && groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
     && mkdir -p /home/pptruser/Downloads \
     && chown -R pptruser:pptruser /home/pptruser \
     && chown -R pptruser:pptruser /node_modules
@@ -225,7 +257,6 @@ RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
 # Run everything after as non-privileged user.
 USER pptruser
 
-ENTRYPOINT ["dumb-init", "--"]
 CMD ["google-chrome-unstable"]
 ```
 
@@ -238,7 +269,7 @@ docker build -t puppeteer-chrome-linux .
 Run the container by passing `node -e "<yourscript.js content as a string>` as the command:
 
 ```bash
- docker run -i --rm --cap-add=SYS_ADMIN \
+ docker run -i --init --rm --cap-add=SYS_ADMIN \
    --name puppeteer-chrome puppeteer-chrome-linux \
    node -e "`cat yourscript.js`"
 ```
@@ -248,29 +279,31 @@ how to run this Dockerfile from a webserver running on App Engine Flex (Node).
 
 ### Running on Alpine
 
-The [newest Chromium package](https://pkgs.alpinelinux.org/package/edge/community/x86_64/chromium) supported on Alpine is 71, which was corresponding to [Puppeteer v1.9.0](https://github.com/GoogleChrome/puppeteer/releases/tag/v1.9.0).
+The [newest Chromium package](https://pkgs.alpinelinux.org/package/edge/community/x86_64/chromium) supported on Alpine is 72, which was corresponding to [Puppeteer v1.11.0](https://github.com/GoogleChrome/puppeteer/releases/tag/v1.11.0).
 
 Example Dockerfile:
 
 ```Dockerfile
 FROM node:10-alpine
 
-# Installs latest Chromium (71) package.
+# Installs latest Chromium (72) package.
 RUN apk update && apk upgrade && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
     apk add --no-cache \
       chromium@edge \
+      nss@edge \
+      freetype@edge \
       harfbuzz@edge \
-      nss@edge
+      ttf-freefont@edge
 
 ...
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
-# Puppeteer v1.9.0 works with Chromium 71.
-RUN yarn add puppeteer@1.9.0
+# Puppeteer v1.11.0 works with Chromium 72.
+RUN yarn add puppeteer@1.11.0
 
 # Add user so we don't need --no-sandbox.
 RUN addgroup -S pptruser && adduser -S -g pptruser pptruser \
@@ -347,9 +380,8 @@ There's also another [simple guide](https://timleland.com/headless-chrome-on-her
 
 AWS Lambda [limits](https://docs.aws.amazon.com/lambda/latest/dg/limits.html) deployment package sizes to ~50MB. This presents challenges for running headless Chrome (and therefore Puppeteer) on Lambda. The community has put together a few resources that work around the issues:
 
-- https://github.com/adieuadieu/serverless-chrome/blob/master/docs/chrome.md (tracks the latest Chromium snapshots)
 - https://github.com/alixaxel/chrome-aws-lambda (kept updated with the latest stable release of puppeteer)
-- https://github.com/Kikobeats/aws-lambda-chrome
+- https://github.com/adieuadieu/serverless-chrome/blob/master/docs/chrome.md (serverless plugin - outdated)
 
 ## Code Transpilation Issues
 

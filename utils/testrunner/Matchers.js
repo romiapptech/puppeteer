@@ -99,7 +99,7 @@ const DefaultMatchers = {
   toEqual: function(value, other, message) {
     const valueJson = stringify(value);
     const otherJson = stringify(other);
-    message = message || `${valueJson} ≈ ${otherJson}`;
+    message = message || `\n${valueJson} ≈ ${otherJson}`;
     return { pass: valueJson === otherJson, message };
   },
 
@@ -126,5 +126,5 @@ function stringify(value) {
     return result;
   }
 
-  return JSON.stringify(stabilize(null, value), stabilize);
+  return JSON.stringify(stabilize(null, value), stabilize, 2);
 }

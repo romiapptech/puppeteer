@@ -16,9 +16,9 @@
 
 const utils = require('./utils');
 
-module.exports.addTests = function({testRunner, expect}) {
-  const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+module.exports.addTests = function({testRunner, expect, CHROME}) {
+  const {describe, xdescribe, fdescribe, describe_fails_ffox} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
 
   describe('ElementHandle.boundingBox', function() {
@@ -35,7 +35,10 @@ module.exports.addTests = function({testRunner, expect}) {
       const nestedFrame = page.frames()[1].childFrames()[1];
       const elementHandle = await nestedFrame.$('div');
       const box = await elementHandle.boundingBox();
-      expect(box).toEqual({ x: 28, y: 260, width: 264, height: 18 });
+      if (CHROME)
+        expect(box).toEqual({ x: 28, y: 260, width: 264, height: 18 });
+      else
+        expect(box).toEqual({ x: 28, y: 182, width: 254, height: 18 });
     });
     it('should return null for invisible elements', async({page, server}) => {
       await page.setContent('<div style="display:none">hi</div>');
@@ -66,7 +69,7 @@ module.exports.addTests = function({testRunner, expect}) {
     });
   });
 
-  describe('ElementHandle.boxModel', function() {
+  describe_fails_ffox('ElementHandle.boxModel', function() {
     it('should work', async({page, server}) => {
       await page.goto(server.PREFIX + '/resetcss.html');
 

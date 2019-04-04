@@ -17,10 +17,11 @@
 const utils = require('./utils');
 const {waitEvent} = utils;
 
-module.exports.addTests = function({testRunner, expect}) {
+module.exports.addTests = function({testRunner, expect, puppeteer, Errors}) {
   const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
+  const {TimeoutError} = Errors;
 
   describe('Target', function() {
     it('Browser.targets should return all of the targets', async({page, server, browser}) => {
@@ -50,11 +51,11 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(await originalPage.$('body')).toBeTruthy();
     });
     it('should report when a new page is created and closed', async({page, server, context}) => {
-      const otherPagePromise = new Promise(fulfill => context.once('targetcreated', target => fulfill(target.page())));
-      await page.evaluate(url => window.open(url), server.CROSS_PROCESS_PREFIX);
-      const otherPage = await otherPagePromise;
+      const [otherPage] = await Promise.all([
+        context.waitForTarget(target => target.url() === server.CROSS_PROCESS_PREFIX + '/empty.html').then(target => target.page()),
+        page.evaluate(url => window.open(url), server.CROSS_PROCESS_PREFIX + '/empty.html'),
+      ]);
       expect(otherPage.url()).toContain(server.CROSS_PROCESS_PREFIX);
-
       expect(await otherPage.evaluate(() => ['Hello', 'world'].join(' '))).toBe('Hello world');
       expect(await otherPage.$('body')).toBeTruthy();
 
@@ -70,7 +71,7 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(allPages).toContain(page);
       expect(allPages).not.toContain(otherPage);
     });
-    it('should report when a service worker is created and destroyed', async({page, server, context}) => {
+    it_fails_ffox('should report when a service worker is created and destroyed', async({page, server, context}) => {
       await page.goto(server.EMPTY_PAGE);
       const createdTarget = new Promise(fulfill => context.once('targetcreated', target => fulfill(target)));
 
@@ -93,7 +94,7 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.goto(server.EMPTY_PAGE);
       expect((await changedTarget).url()).toBe(server.EMPTY_PAGE);
     });
-    it('should not report uninitialized pages', async({page, server, context}) => {
+    it_fails_ffox('should not report uninitialized pages', async({page, server, context}) => {
       let targetChanged = false;
       const listener = () => targetChanged = true;
       context.on('targetchanged', listener);
@@ -140,6 +141,27 @@ module.exports.addTests = function({testRunner, expect}) {
       expect((await createdTarget.page()).url()).toBe(server.PREFIX + '/popup/popup.html');
       expect(createdTarget.opener()).toBe(page.target());
       expect(page.target().opener()).toBe(null);
+    });
+  });
+
+  describe('Browser.waitForTarget', () => {
+    it('should wait for a target', async function({browser, server}) {
+      let resolved = false;
+      const targetPromise = browser.waitForTarget(target => target.url() === server.EMPTY_PAGE);
+      targetPromise.then(() => resolved = true);
+      const page = await browser.newPage();
+      expect(resolved).toBe(false);
+      await page.goto(server.EMPTY_PAGE);
+      const target = await targetPromise;
+      expect(await target.page()).toBe(page);
+      await page.close();
+    });
+    it('should timeout waiting for a non-existent target', async function({browser, server}) {
+      let error = null;
+      await browser.waitForTarget(target => target.url() === server.EMPTY_PAGE, {
+        timeout: 1
+      }).catch(e => error = e);
+      expect(error).toBeInstanceOf(TimeoutError);
     });
   });
 };

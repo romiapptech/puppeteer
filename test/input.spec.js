@@ -18,7 +18,7 @@ const path = require('path');
 
 module.exports.addTests = function({testRunner, expect}) {
   const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
   describe('input', function() {
     it('should upload the file', async({page, server}) => {
@@ -33,17 +33,6 @@ module.exports.addTests = function({testRunner, expect}) {
         reader.readAsText(e.files[0]);
         return promise.then(() => reader.result);
       }, input)).toBe('contents of the file');
-    });
-    it('keyboard.modifiers()', async({page, server}) => {
-      const keyboard = page.keyboard;
-      expect(keyboard._modifiers).toBe(0);
-      await keyboard.down('Shift');
-      expect(keyboard._modifiers).toBe(8);
-      await keyboard.down('Alt');
-      expect(keyboard._modifiers).toBe(9);
-      await keyboard.up('Shift');
-      await keyboard.up('Alt');
-      expect(keyboard._modifiers).toBe(0);
     });
   });
 };

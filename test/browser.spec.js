@@ -13,19 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-const utils = require('./utils');
-const puppeteer = utils.requireRoot('index');
 
-module.exports.addTests = function({testRunner, expect, headless}) {
+module.exports.addTests = function({testRunner, expect, headless, puppeteer, CHROME}) {
   const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
 
   describe('Browser.version', function() {
     it('should return whether we are in headless', async({browser}) => {
       const version = await browser.version();
       expect(version.length).toBeGreaterThan(0);
-      expect(version.startsWith('Headless')).toBe(headless);
+      if (CHROME)
+        expect(version.startsWith('Headless')).toBe(headless);
+      else
+        expect(version.startsWith('Firefox/')).toBe(true);
     });
   });
 
@@ -33,7 +34,10 @@ module.exports.addTests = function({testRunner, expect, headless}) {
     it('should include WebKit', async({browser}) => {
       const userAgent = await browser.userAgent();
       expect(userAgent.length).toBeGreaterThan(0);
-      expect(userAgent).toContain('WebKit');
+      if (CHROME)
+        expect(userAgent).toContain('WebKit');
+      else
+        expect(userAgent).toContain('Gecko');
     });
   });
 
@@ -48,6 +52,8 @@ module.exports.addTests = function({testRunner, expect, headless}) {
     it('should return child_process instance', async function({browser}) {
       const process = await browser.process();
       expect(process.pid).toBeGreaterThan(0);
+    });
+    it('should not return child_process for remote browser', async function({browser}) {
       const browserWSEndpoint = browser.wsEndpoint();
       const remoteBrowser = await puppeteer.connect({browserWSEndpoint});
       expect(remoteBrowser.process()).toBe(null);

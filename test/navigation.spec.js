@@ -15,14 +15,32 @@
  */
 
 const utils = require('./utils');
-const {TimeoutError} = utils.requireRoot('Errors');
 
-module.exports.addTests = function({testRunner, expect}) {
+module.exports.addTests = function({testRunner, expect, Errors, CHROME}) {
   const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
+  const {TimeoutError} = Errors;
 
   describe('Page.goto', function() {
+    it('should work', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      expect(page.url()).toBe(server.EMPTY_PAGE);
+    });
+    it('should work with anchor navigation', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      expect(page.url()).toBe(server.EMPTY_PAGE);
+      await page.goto(server.EMPTY_PAGE + '#foo');
+      expect(page.url()).toBe(server.EMPTY_PAGE + '#foo');
+      await page.goto(server.EMPTY_PAGE + '#bar');
+      expect(page.url()).toBe(server.EMPTY_PAGE + '#bar');
+    });
+    it('should work with redirects', async({page, server}) => {
+      server.setRedirect('/redirect/1.html', '/redirect/2.html');
+      server.setRedirect('/redirect/2.html', '/empty.html');
+      await page.goto(server.PREFIX + '/redirect/1.html');
+      expect(page.url()).toBe(server.EMPTY_PAGE);
+    });
     it('should navigate to about:blank', async({page, server}) => {
       const response = await page.goto('about:blank');
       expect(response).toBe(null);
@@ -46,12 +64,14 @@ module.exports.addTests = function({testRunner, expect}) {
       let error = null;
       await page.goto(server.EMPTY_PAGE).catch(e => error = e);
       expect(error).not.toBe(null);
-      expect(error.message).toContain('net::ERR_ABORTED');
+      if (CHROME)
+        expect(error.message).toContain('net::ERR_ABORTED');
+      else
+        expect(error.message).toContain('NS_BINDING_ABORTED');
     });
     it('should navigate to empty page with domcontentloaded', async({page, server}) => {
       const response = await page.goto(server.EMPTY_PAGE, {waitUntil: 'domcontentloaded'});
       expect(response.status()).toBe(200);
-      expect(response.securityDetails()).toBe(null);
     });
     it('should work when page calls history API in beforeunload', async({page, server}) => {
       await page.goto(server.EMPTY_PAGE);
@@ -61,18 +81,21 @@ module.exports.addTests = function({testRunner, expect}) {
       const response = await page.goto(server.PREFIX + '/grid.html');
       expect(response.status()).toBe(200);
     });
-    it('should navigate to empty page with networkidle0', async({page, server}) => {
+    it_fails_ffox('should navigate to empty page with networkidle0', async({page, server}) => {
       const response = await page.goto(server.EMPTY_PAGE, {waitUntil: 'networkidle0'});
       expect(response.status()).toBe(200);
     });
-    it('should navigate to empty page with networkidle2', async({page, server}) => {
+    it_fails_ffox('should navigate to empty page with networkidle2', async({page, server}) => {
       const response = await page.goto(server.EMPTY_PAGE, {waitUntil: 'networkidle2'});
       expect(response.status()).toBe(200);
     });
     it('should fail when navigating to bad url', async({page, server}) => {
       let error = null;
       await page.goto('asdfasdf').catch(e => error = e);
-      expect(error.message).toContain('Cannot navigate to invalid URL');
+      if (CHROME)
+        expect(error.message).toContain('Cannot navigate to invalid URL');
+      else
+        expect(error.message).toContain('Invalid url');
     });
     it('should fail when navigating to bad SSL', async({page, httpsServer}) => {
       // Make sure that network events do not emit 'undefined'.
@@ -82,16 +105,22 @@ module.exports.addTests = function({testRunner, expect}) {
       page.on('requestfailed', request => expect(request).toBeTruthy());
       let error = null;
       await page.goto(httpsServer.EMPTY_PAGE).catch(e => error = e);
-      expect(error.message).toContain('net::ERR_CERT_AUTHORITY_INVALID');
+      if (CHROME)
+        expect(error.message).toContain('net::ERR_CERT_AUTHORITY_INVALID');
+      else
+        expect(error.message).toContain('SSL_ERROR_UNKNOWN');
     });
     it('should fail when navigating to bad SSL after redirects', async({page, server, httpsServer}) => {
       server.setRedirect('/redirect/1.html', '/redirect/2.html');
       server.setRedirect('/redirect/2.html', '/empty.html');
       let error = null;
       await page.goto(httpsServer.PREFIX + '/redirect/1.html').catch(e => error = e);
-      expect(error.message).toContain('net::ERR_CERT_AUTHORITY_INVALID');
+      if (CHROME)
+        expect(error.message).toContain('net::ERR_CERT_AUTHORITY_INVALID');
+      else
+        expect(error.message).toContain('SSL_ERROR_UNKNOWN');
     });
-    it('should throw if networkidle is passed as an option', async({page, server}) => {
+    it_fails_ffox('should throw if networkidle is passed as an option', async({page, server}) => {
       let error = null;
       await page.goto(server.EMPTY_PAGE, {waitUntil: 'networkidle'}).catch(err => error = err);
       expect(error.message).toContain('"networkidle" option is no longer supported');
@@ -99,7 +128,10 @@ module.exports.addTests = function({testRunner, expect}) {
     it('should fail when main resources failed to load', async({page, server}) => {
       let error = null;
       await page.goto('http://localhost:44123/non-existing-url').catch(e => error = e);
-      expect(error.message).toContain('net::ERR_CONNECTION_REFUSED');
+      if (CHROME)
+        expect(error.message).toContain('net::ERR_CONNECTION_REFUSED');
+      else
+        expect(error.message).toContain('NS_ERROR_CONNECTION_REFUSED');
     });
     it('should fail when exceeding maximum navigation timeout', async({page, server}) => {
       // Hang for request to the empty.html
@@ -118,6 +150,25 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(error.message).toContain('Navigation Timeout Exceeded: 1ms');
       expect(error).toBeInstanceOf(TimeoutError);
     });
+    it('should fail when exceeding default maximum timeout', async({page, server}) => {
+      // Hang for request to the empty.html
+      server.setRoute('/empty.html', (req, res) => { });
+      let error = null;
+      page.setDefaultTimeout(1);
+      await page.goto(server.PREFIX + '/empty.html').catch(e => error = e);
+      expect(error.message).toContain('Navigation Timeout Exceeded: 1ms');
+      expect(error).toBeInstanceOf(TimeoutError);
+    });
+    it('should prioritize default navigation timeout over default timeout', async({page, server}) => {
+      // Hang for request to the empty.html
+      server.setRoute('/empty.html', (req, res) => { });
+      let error = null;
+      page.setDefaultTimeout(0);
+      page.setDefaultNavigationTimeout(1);
+      await page.goto(server.PREFIX + '/empty.html').catch(e => error = e);
+      expect(error.message).toContain('Navigation Timeout Exceeded: 1ms');
+      expect(error).toBeInstanceOf(TimeoutError);
+    });
     it('should disable timeout when its set to 0', async({page, server}) => {
       let error = null;
       let loaded = false;
@@ -130,7 +181,7 @@ module.exports.addTests = function({testRunner, expect}) {
       const response = await page.goto(server.EMPTY_PAGE);
       expect(response.ok()).toBe(true);
     });
-    it('should work when navigating to data url', async({page, server}) => {
+    it_fails_ffox('should work when navigating to data url', async({page, server}) => {
       const response = await page.goto('data:text/html,hello');
       expect(response.ok()).toBe(true);
     });
@@ -147,7 +198,7 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(response.ok()).toBe(true);
       expect(response.url()).toBe(server.EMPTY_PAGE);
     });
-    it('should wait for network idle to succeed navigation', async({page, server}) => {
+    it_fails_ffox('should wait for network idle to succeed navigation', async({page, server}) => {
       let responses = [];
       // Hold on to a bunch of requests without answering.
       server.setRoute('/fetch-request-a.js', (req, res) => responses.push(res));
@@ -234,18 +285,18 @@ module.exports.addTests = function({testRunner, expect}) {
       process.removeListener('warning', warningHandler);
       expect(warning).toBe(null);
     });
-    it('should navigate to dataURL and fire dataURL requests', async({page, server}) => {
+    it_fails_ffox('should navigate to dataURL and fire dataURL requests', async({page, server}) => {
       const requests = [];
-      page.on('request', request => requests.push(request));
+      page.on('request', request => !utils.isFavicon(request) && requests.push(request));
       const dataURL = 'data:text/html,<div>yo</div>';
       const response = await page.goto(dataURL);
       expect(response.status()).toBe(200);
       expect(requests.length).toBe(1);
       expect(requests[0].url()).toBe(dataURL);
     });
-    it('should navigate to URL with hash and fire requests without hash', async({page, server}) => {
+    it_fails_ffox('should navigate to URL with hash and fire requests without hash', async({page, server}) => {
       const requests = [];
-      page.on('request', request => requests.push(request));
+      page.on('request', request => !utils.isFavicon(request) && requests.push(request));
       const response = await page.goto(server.EMPTY_PAGE + '#hash');
       expect(response.status()).toBe(200);
       expect(response.url()).toBe(server.EMPTY_PAGE);
@@ -351,7 +402,7 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(response).toBe(null);
       expect(page.url()).toBe(server.PREFIX + '/replaced.html');
     });
-    it('should work with DOM history.back()/history.forward()', async({page, server}) => {
+    it_fails_ffox('should work with DOM history.back()/history.forward()', async({page, server}) => {
       await page.goto(server.EMPTY_PAGE);
       await page.setContent(`
         <a id=back onclick='javascript:goBack()'>back</a>
@@ -490,7 +541,7 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(response.frame()).toBe(frame);
       expect(page.url()).toContain('/frames/one-frame.html');
     });
-    it('should reject when frame detaches', async({page, server}) => {
+    it_fails_ffox('should resolve when frame detaches', async({page, server}) => {
       await page.goto(server.PREFIX + '/frames/one-frame.html');
       const frame = page.frames()[1];
 
@@ -502,6 +553,15 @@ module.exports.addTests = function({testRunner, expect}) {
       ]);
       await page.$eval('iframe', frame => frame.remove());
       await navigationPromise;
+    });
+  });
+
+  describe('Page.reload', function() {
+    it('should work', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      await page.evaluate(() => window._foo = 10);
+      await page.reload();
+      expect(await page.evaluate(() => window._foo)).toBe(undefined);
     });
   });
 };

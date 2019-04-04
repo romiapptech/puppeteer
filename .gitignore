@@ -1,5 +1,6 @@
 /node_modules/
-/test/output
+/test/output-chromium
+/test/output-firefox
 /test/test-user-data-dir*
 /.local-chromium/
 /.dev_profile*
@@ -12,3 +13,4 @@ yarn.lock
 /node6
 /lib/protocol.d.ts
 /utils/browser/puppeteer-web.js
+/index.d.ts

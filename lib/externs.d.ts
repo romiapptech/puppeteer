@@ -6,6 +6,8 @@ import {TaskQueue as RealTaskQueue} from './TaskQueue.js';
 import {Mouse as RealMouse, Keyboard as RealKeyboard, Touchscreen as RealTouchscreen}  from './Input.js';
 import {Frame as RealFrame, FrameManager as RealFrameManager}  from './FrameManager.js';
 import {JSHandle as RealJSHandle, ElementHandle as RealElementHandle}  from './JSHandle.js';
+import {DOMWorld as RealDOMWorld}  from './DOMWorld.js';
+import {TimeoutSettings as RealTimeoutSettings}  from './TimeoutSettings.js';
 import {ExecutionContext as RealExecutionContext}  from './ExecutionContext.js';
 import { NetworkManager as RealNetworkManager, Request as RealRequest, Response as RealResponse } from './NetworkManager.js';
 import * as child_process from 'child_process';
@@ -28,6 +30,8 @@ declare global {
     export class NetworkManager extends RealNetworkManager {}
     export class ElementHandle extends RealElementHandle {}
     export class JSHandle extends RealJSHandle {}
+    export class DOMWorld extends RealDOMWorld {}
+    export class TimeoutSettings extends RealTimeoutSettings {}
     export class ExecutionContext extends RealExecutionContext {}
     export class Page extends RealPage { }
     export class Response extends RealResponse { }

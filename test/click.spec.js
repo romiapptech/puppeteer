@@ -20,11 +20,17 @@ const iPhone = DeviceDescriptors['iPhone 6'];
 
 module.exports.addTests = function({testRunner, expect}) {
   const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
   describe('Page.click', function() {
     it('should click the button', async({page, server}) => {
       await page.goto(server.PREFIX + '/input/button.html');
+      await page.click('button');
+      expect(await page.evaluate(() => result)).toBe('Clicked');
+    });
+    it_fails_ffox('should click the button if window.Node is removed', async({page, server}) => {
+      await page.goto(server.PREFIX + '/input/button.html');
+      await page.evaluate(() => delete window.Node);
       await page.click('button');
       expect(await page.evaluate(() => result)).toBe('Clicked');
     });
@@ -35,7 +41,7 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.click('button');
       expect(await page.evaluate(() => result)).toBe('Clicked');
     });
-    it('should click with disabled javascript', async({page, server}) => {
+    it_fails_ffox('should click with disabled javascript', async({page, server}) => {
       await page.setJavaScriptEnabled(false);
       await page.goto(server.PREFIX + '/wrappedlink.html');
       await Promise.all([
@@ -83,11 +89,8 @@ module.exports.addTests = function({testRunner, expect}) {
 
     it('should click wrapped links', async({page, server}) => {
       await page.goto(server.PREFIX + '/wrappedlink.html');
-      await Promise.all([
-        page.click('a'),
-        page.waitForNavigation()
-      ]);
-      expect(page.url()).toBe(server.PREFIX + '/wrappedlink.html#clicked');
+      await page.click('a');
+      expect(await page.evaluate(() => window.__clicked)).toBe(true);
     });
 
     it('should click on checkbox input and toggle', async({page, server}) => {
@@ -191,6 +194,17 @@ module.exports.addTests = function({testRunner, expect}) {
       const frame = page.frames()[1];
       const button = await frame.$('button');
       await button.click();
+      expect(await frame.evaluate(() => window.result)).toBe('Clicked');
+    });
+    // @see https://github.com/GoogleChrome/puppeteer/issues/4110
+    xit('should click the button with fixed position inside an iframe', async({page, server}) => {
+      await page.goto(server.EMPTY_PAGE);
+      await page.setViewport({width: 500, height: 500});
+      await page.setContent('<div style="width:100px;height:2000px">spacer</div>');
+      await utils.attachFrame(page, 'button-test', server.CROSS_PROCESS_PREFIX + '/input/button.html');
+      const frame = page.frames()[1];
+      await frame.$eval('button', button => button.style.setProperty('position', 'fixed'));
+      await frame.click('button');
       expect(await frame.evaluate(() => window.result)).toBe('Clicked');
     });
     it('should click the button with deviceScaleFactor set', async({page, server}) => {

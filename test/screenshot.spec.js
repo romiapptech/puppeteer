@@ -16,7 +16,7 @@
 
 module.exports.addTests = function({testRunner, expect, product}) {
   const {describe, xdescribe, fdescribe} = testRunner;
-  const {it, fit, xit} = testRunner;
+  const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
 
   describe('Page.screenshot', function() {
@@ -92,13 +92,13 @@ module.exports.addTests = function({testRunner, expect, product}) {
         expect(screenshots[i]).toBeGolden(`grid-cell-${i}.png`);
       await Promise.all(pages.map(page => page.close()));
     });
-    it('should allow transparency', async({page, server}) => {
+    it_fails_ffox('should allow transparency', async({page, server}) => {
       await page.setViewport({ width: 100, height: 100 });
       await page.goto(server.EMPTY_PAGE);
       const screenshot = await page.screenshot({omitBackground: true});
       expect(screenshot).toBeGolden('transparent.png');
     });
-    it('should render white background on jpeg file', async({page, server}) => {
+    it_fails_ffox('should render white background on jpeg file', async({page, server}) => {
       await page.setViewport({ width: 100, height: 100 });
       await page.goto(server.EMPTY_PAGE);
       const screenshot = await page.screenshot({omitBackground: true, type: 'jpeg'});
